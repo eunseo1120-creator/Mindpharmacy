@@ -201,12 +201,10 @@ func _build_modal() -> void:
 
 
 func _render() -> void:
-	var scene_id := "pharmacy"
-	if current_place in ["childhood", "school", "adult", "truth"]:
-		scene_id = current_place + "_" + DIRECTIONS[direction_index]
+	var scene_id: String = current_place + "_" + DIRECTIONS[direction_index]
 	room_art.set_scene(scene_id, flags)
-	left_button.visible = current_place != "pharmacy"
-	right_button.visible = current_place != "pharmacy"
+	left_button.visible = true
+	right_button.visible = true
 	_build_hotspots()
 	_refresh_inventory()
 	_save()
@@ -216,8 +214,9 @@ func _build_hotspots() -> void:
 	for child in hotspot_layer.get_children():
 		child.queue_free()
 	if current_place == "pharmacy":
-		_add_hotspot("편지함", Rect2(0.84, 0.3, 0.15, 0.29), _open_letter)
-		if flags.get("chapter_returned", false):
+		if DIRECTIONS[direction_index] == "right":
+			_add_hotspot("편지함", Rect2(0.12, 0.17, 0.42, 0.5), _open_letter)
+		if DIRECTIONS[direction_index] == "front" and flags.get("chapter_returned", false):
 			_add_hotspot("조제대", Rect2(0.2, 0.5, 0.62, 0.42), _brew_medicine)
 		return
 
@@ -336,6 +335,11 @@ func _refresh_inventory() -> void:
 		if index < inventory.size():
 			var item := inventory[index]
 			var item_button := _make_inventory_button(_item_symbol(item), _item_name(item))
+			var item_texture := _item_texture(item)
+			if item_texture != null:
+				item_button.text = ""
+				item_button.icon = item_texture
+				item_button.expand_icon = true
 			item_button.toggle_mode = true
 			item_button.button_pressed = item == selected_item
 			item_button.pressed.connect(_select_item.bind(item))
@@ -359,7 +363,7 @@ func _open_letter() -> void:
 	else:
 		flags["letter_opened"] = true
 		_show_letter(1)
-	room_art.set_scene("pharmacy", flags)
+	room_art.set_scene("pharmacy_" + DIRECTIONS[direction_index], flags)
 
 
 func _show_letter(number: int) -> void:
@@ -760,6 +764,7 @@ func _use_final_door() -> void:
 func _return_to_pharmacy() -> void:
 	_close_modal()
 	current_place = "pharmacy"
+	direction_index = 0
 	_set_status("조제대가 은은하게 빛난다.")
 	_render()
 
@@ -802,7 +807,12 @@ func _select_item(item: String) -> void:
 
 func _show_hint() -> void:
 	var hint := "빛나는 편지함을 살펴보세요."
-	if current_place == "childhood":
+	if current_place == "pharmacy":
+		if flags.get("chapter_returned", false):
+			hint = "정면의 조제대를 살펴보세요."
+		else:
+			hint = "오른쪽 방향의 편지함을 살펴보세요."
+	elif current_place == "childhood":
 		if not flags.get("bear_repaired", false):
 			hint = "서랍과 옷장에서 곰인형을 수선할 도구를 찾아보세요."
 		elif not flags.get("storybook_page_1_found", false):
@@ -922,6 +932,7 @@ func _remove_item(item: String) -> void:
 
 func _direction_name() -> String:
 	var names := {
+		"pharmacy": ["정면 · 조제대", "오른쪽 · 편지함", "뒤쪽 · 약병 진열장", "왼쪽 · 작업 책상"],
 		"childhood": ["정면 · 거대한 문", "오른쪽 · 망가진 장난감", "뒤쪽 · 옷장과 서랍", "왼쪽 · 침대와 책꽂이"],
 		"school": ["정면 · 칠판과 교실 문", "오른쪽 · 낙서 책상", "뒤쪽 · 사물함", "왼쪽 · 출석표와 스피커"],
 		"adult": ["정면 · 현관과 휴대전화", "오른쪽 · 모니터와 멀티탭", "뒤쪽 · 쓰레기 더미와 노트", "왼쪽 · 야광 별과 화분"],
@@ -986,6 +997,39 @@ func _item_symbol(item: String) -> String:
 		,"self_trust_vial": "Ⅲ"
 		,"heart_key": "♢"
 	}.get(item, "·")
+
+
+func _item_texture(item: String) -> Texture2D:
+	var paths := {
+		"torn_bear": "res://assets/items/childhood/torn-bear.png",
+		"needle": "res://assets/items/childhood/needle.png",
+		"thread": "res://assets/items/childhood/thread.png",
+		"repaired_bear": "res://assets/items/childhood/repaired-bear.png",
+		"block_set": "res://assets/items/childhood/blocks.png",
+		"storybook_page_1": "res://assets/items/childhood/storybook-page.png",
+		"storybook_page_2": "res://assets/items/childhood/storybook-page.png",
+		"completed_storybook": "res://assets/items/finale/sketchbook.png",
+		"courage": "res://assets/items/finale/emotion-vials.png",
+		"door_key": "res://assets/items/school/school-key.png",
+		"clear_tape": "res://assets/items/school/clear-tape.png",
+		"torn_shoe": "res://assets/items/school/torn-shoe.png",
+		"repaired_shoe": "res://assets/items/school/repaired-shoe.png",
+		"name_card": "res://assets/items/school/name-card.png",
+		"will": "res://assets/items/school/will-vial.png",
+		"school_key": "res://assets/items/school/school-key.png",
+		"bus_ticket": "res://assets/items/adult/bus-ticket.png",
+		"phone": "res://assets/items/adult/phone.png",
+		"self_trust": "res://assets/items/adult/self-trust-vial.png",
+		"adult_key": "res://assets/items/adult/apartment-key.png",
+		"courage_vial": "res://assets/items/finale/emotion-vials.png",
+		"will_vial": "res://assets/items/school/will-vial.png",
+		"self_trust_vial": "res://assets/items/adult/self-trust-vial.png",
+		"heart_key": "res://assets/items/finale/heart-key.png"
+	}
+	var path := str(paths.get(item, ""))
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
 
 
 func _set_status(message: String) -> void:
@@ -1088,9 +1132,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("close_popup") and modal_layer.visible:
 		_close_modal()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("move_left") and current_place == "childhood" and not modal_layer.visible:
+	elif event.is_action_pressed("move_left") and not modal_layer.visible:
 		_move_left()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("move_right") and current_place == "childhood" and not modal_layer.visible:
+	elif event.is_action_pressed("move_right") and not modal_layer.visible:
 		_move_right()
 		get_viewport().set_input_as_handled()

@@ -4,6 +4,7 @@ const PHARMACY_TEXTURE := preload("res://assets/backgrounds/pharmacy/main-v1.web
 
 var scene_id := "pharmacy"
 var solved_flags: Dictionary = {}
+var texture_cache: Dictionary = {}
 
 const INK := Color("#211a18")
 const PAPER := Color("#d7c39b")
@@ -30,6 +31,10 @@ func _draw() -> void:
 
 
 func _draw_room(rect: Rect2) -> void:
+	var generated_texture := _get_generated_texture()
+	if generated_texture != null:
+		draw_texture_rect(generated_texture, rect, false)
+		return
 	match scene_id:
 		"pharmacy":
 			_draw_pharmacy(rect)
@@ -49,6 +54,27 @@ func _draw_room(rect: Rect2) -> void:
 			_draw_truth(rect, scene_id.trim_prefix("truth_"))
 		_:
 			_draw_pharmacy(rect)
+
+
+func _get_generated_texture() -> Texture2D:
+	var path := ""
+	if scene_id == "pharmacy":
+		path = "res://assets/backgrounds/pharmacy_v2/front.png"
+	elif scene_id.begins_with("pharmacy_"):
+		path = "res://assets/backgrounds/pharmacy_v2/" + scene_id.trim_prefix("pharmacy_") + ".png"
+	elif scene_id.begins_with("childhood_"):
+		path = "res://assets/backgrounds/childhood/" + scene_id.trim_prefix("childhood_") + ".png"
+	elif scene_id.begins_with("school_"):
+		path = "res://assets/backgrounds/school/" + scene_id.trim_prefix("school_") + ".png"
+	elif scene_id.begins_with("adult_"):
+		path = "res://assets/backgrounds/adult/" + scene_id.trim_prefix("adult_") + ".png"
+	elif scene_id.begins_with("truth_"):
+		path = "res://assets/backgrounds/truth/" + scene_id.trim_prefix("truth_") + ".png"
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	if not texture_cache.has(path):
+		texture_cache[path] = load(path)
+	return texture_cache[path] as Texture2D
 
 
 func _draw_background(rect: Rect2, wall_color: Color = WALL) -> void:
