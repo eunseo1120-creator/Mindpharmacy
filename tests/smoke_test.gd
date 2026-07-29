@@ -103,6 +103,20 @@ func _run() -> void:
 	game._use_final_door()
 	_expect(game.flags.get("ending_complete", false), "현실의 문을 열고 엔딩에 도달한다")
 
+	game._toggle_developer_mode()
+	_expect(game.developer_mode, "설정에서 개발자 모드를 켠다")
+	game._developer_jump("school")
+	_expect(game.current_place == "school", "개발자 메뉴에서 원하는 챕터로 이동한다")
+	game._developer_solve_current()
+	_expect(
+		game.flags.get("blackboard_solved", false)
+		and game.flags.get("whispers_quiet", false)
+		and game.inventory.has("school_key"),
+		"개발자 메뉴에서 현재 챕터를 마지막 상호작용 직전으로 준비한다"
+	)
+	game._toggle_developer_mode()
+	_expect(not game.developer_mode, "개발자 모드를 다시 끈다")
+
 	if failures == 0:
 		print("마음 약방 전체 챕터 스모크 테스트 통과")
 		quit(0)

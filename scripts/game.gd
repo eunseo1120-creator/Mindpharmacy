@@ -17,6 +17,7 @@ var inventory: Array[String] = []
 var selected_item := ""
 var flags: Dictionary = {}
 var phone_input := ""
+var developer_mode := false
 
 var room_art: Control
 var hotspot_layer: Control
@@ -40,6 +41,7 @@ func _ready() -> void:
 		direction_index = int(saved.get("direction_index", 0))
 		inventory.assign(saved.get("inventory", []))
 		flags = saved.get("flags", {})
+		developer_mode = bool(saved.get("developer_mode", false))
 		_set_status("저장된 기억에서 이어갑니다.")
 	else:
 		_set_status("빛나는 편지함을 눌러 보세요.")
@@ -864,14 +866,113 @@ func _show_hint() -> void:
 
 
 func _open_settings() -> void:
+	var actions: Array = [
+		{"label": "힌트 보기", "callback": _show_hint},
+		{
+			"label": "개발자 모드 끄기" if developer_mode else "개발자 모드 켜기",
+			"callback": _toggle_developer_mode
+		}
+	]
+	if developer_mode:
+		actions.append({"label": "개발자 메뉴", "callback": _open_developer_menu})
+	actions.append({"label": "처음부터", "callback": _confirm_reset})
+	var developer_status := "\n\n[color=#8b5d35]개발자 모드가 켜져 있습니다.[/color]" if developer_mode else ""
 	_show_modal(
 		"설정",
-		"[center]게임 진행은 자동으로 저장됩니다.[/center]",
+		"[center]게임 진행은 자동으로 저장됩니다." + developer_status + "[/center]",
+		actions
+	)
+
+
+func _toggle_developer_mode() -> void:
+	developer_mode = not developer_mode
+	_save()
+	_open_settings()
+
+
+func _open_developer_menu() -> void:
+	if not developer_mode:
+		_open_settings()
+		return
+	_show_modal(
+		"개발자 메뉴",
+		"[center]장면 이동과 퍼즐 상태를 빠르게 테스트합니다.\n테스트 변경 사항도 자동 저장됩니다.[/center]",
 		[
-			{"label": "힌트 보기", "callback": _show_hint},
-			{"label": "처음부터", "callback": _confirm_reset}
+			{"label": "현재 챕터 퍼즐 준비 완료", "callback": _developer_solve_current},
+			{"label": "약방으로 이동", "callback": _developer_jump.bind("pharmacy")},
+			{"label": "유년기로 이동", "callback": _developer_jump.bind("childhood")},
+			{"label": "청소년기로 이동", "callback": _developer_jump.bind("school")},
+			{"label": "성년기로 이동", "callback": _developer_jump.bind("adult")},
+			{"label": "진실의 방으로 이동", "callback": _developer_jump.bind("truth")}
 		]
 	)
+
+
+func _developer_jump(place: String) -> void:
+	if not developer_mode or not place in ["pharmacy", "childhood", "school", "adult", "truth"]:
+		return
+	_close_modal()
+	current_place = place
+	direction_index = 0
+	selected_item = ""
+	_set_status("[개발자] " + _direction_name())
+	_render()
+
+
+func _developer_solve_current() -> void:
+	if not developer_mode:
+		return
+	match current_place:
+		"pharmacy":
+			_add_item("courage_vial")
+			_add_item("will_vial")
+			_add_item("self_trust_vial")
+			flags["medicine_brewed"] = true
+			flags["school_medicine_brewed"] = true
+			flags["adult_medicine_brewed"] = true
+			flags["chapter_returned"] = false
+		"childhood":
+			flags.merge({
+				"bear_repaired": true,
+				"storybook_page_1_found": true,
+				"train_repaired": true,
+				"storybook_completed": true,
+				"phone_code_entered": true,
+				"courage_obtained": true
+			}, true)
+			_add_item("courage")
+			_add_item("door_key")
+		"school":
+			flags.merge({
+				"desk_read": true,
+				"locker_open": true,
+				"shoe_repaired": true,
+				"attendance_read": true,
+				"blackboard_solved": true,
+				"whispers_quiet": true
+			}, true)
+			_add_item("will")
+			_add_item("school_key")
+		"adult":
+			flags.merge({
+				"power_off": true,
+				"stars_read": true,
+				"dream_note_read": true,
+				"phone_unlocked": true,
+				"plant_watered": true
+			}, true)
+			_add_item("phone")
+			_add_item("self_trust")
+			_add_item("adult_key")
+		"truth":
+			flags["mirror_seen"] = true
+			flags["records_seen"] = true
+			_add_item("courage_vial")
+			_add_item("will_vial")
+			_add_item("self_trust_vial")
+	_close_modal()
+	_set_status("[개발자] 현재 챕터의 마지막 상호작용을 테스트할 수 있습니다.")
+	_render()
 
 
 func _confirm_reset() -> void:
@@ -915,7 +1016,8 @@ func _save() -> void:
 		"current_place": current_place,
 		"direction_index": direction_index,
 		"inventory": inventory,
-		"flags": flags
+		"flags": flags,
+		"developer_mode": developer_mode
 	})
 
 
