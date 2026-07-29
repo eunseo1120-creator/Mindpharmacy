@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "id": "chapter_childhood",
+  "title": "거대한 두려움의 방",
+  "contentWarnings": ["가정폭력 암시", "위협적인 음향", "어두운 공간"],
+  "startViewId": "view_childhood_front",
+  "views": [
+    {
+      "id": "view_childhood_front",
+      "direction": "front",
+      "background": "assets/backgrounds/childhood/front.webp",
+      "hotspots": [
+        {
+          "id": "hotspot_front_door",
+          "label": "거대한 문",
+          "bounds": { "x": 0.37, "y": 0.08, "width": 0.26, "height": 0.82 },
+          "interactions": [
+            {
+              "id": "interaction_open_childhood_door",
+              "trigger": "useItem",
+              "itemId": "item_childhood_door_key",
+              "when": [
+                { "type": "hasItem", "itemId": "item_childhood_door_key" },
+                { "type": "flagEquals", "flag": "flag_courage_obtained", "value": true }
+              ],
+              "effects": [
+                { "type": "removeItem", "itemId": "item_childhood_door_key" },
+                { "type": "setFlag", "flag": "flag_childhood_door_open", "value": true }
+              ],
+              "feedback": "열쇠가 맞는다. 이제 이 방을 나갈 수 있다."
+            }
+          ]
+        },
+        {
+          "id": "hotspot_rotary_phone",
+          "label": "구형 다이얼 전화기",
+          "bounds": { "x": 0.67, "y": 0.49, "width": 0.14, "height": 0.22 },
+          "interactions": [
+            {
+              "id": "interaction_inspect_phone",
+              "trigger": "click",
+              "effects": [
+                { "type": "goToView", "viewId": "view_childhood_phone" }
+              ],
+              "feedback": "다이얼 숫자를 입력할 수 있다."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "view_childhood_right",
+      "direction": "right",
+      "background": "assets/backgrounds/childhood/right.webp",
+      "hotspots": [
+        {
+          "id": "hotspot_torn_bear",
+          "label": "뜯어진 곰인형",
+          "bounds": { "x": 0.15, "y": 0.62, "width": 0.16, "height": 0.22 },
+          "interactions": [
+            {
+              "id": "interaction_collect_torn_bear",
+              "trigger": "click",
+              "effects": [
+                { "type": "addItem", "itemId": "item_torn_bear" },
+                { "type": "setFlag", "flag": "flag_torn_bear_collected", "value": true }
+              ],
+              "feedback": "솜이 삐져나온 곰인형이다."
+            }
+          ]
+        },
+        {
+          "id": "hotspot_toy_train",
+          "label": "망가진 장난감 기차",
+          "bounds": { "x": 0.55, "y": 0.58, "width": 0.27, "height": 0.2 },
+          "interactions": [
+            {
+              "id": "interaction_inspect_train",
+              "trigger": "click",
+              "effects": [
+                { "type": "goToView", "viewId": "view_childhood_train" }
+              ],
+              "feedback": "블록이 빠져 움직이지 않는다."
+            }
+          ]
+        },
+        {
+          "id": "hotspot_colored_blocks",
+          "label": "색깔 블록",
+          "bounds": { "x": 0.4, "y": 0.7, "width": 0.22, "height": 0.18 },
+          "interactions": [
+            {
+              "id": "interaction_collect_colored_blocks",
+              "trigger": "click",
+              "effects": [
+                { "type": "addItem", "itemId": "item_block_set" },
+                { "type": "setFlag", "flag": "flag_blocks_collected", "value": true }
+              ],
+              "feedback": "색깔 블록 세 개를 주웠다."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "view_childhood_back",
+      "direction": "back",
+      "background": "assets/backgrounds/childhood/back.webp",
+      "hotspots": [
+        {
+          "id": "hotspot_drawer_needle",
+          "label": "서랍",
+          "bounds": { "x": 0.2, "y": 0.47, "width": 0.2, "height": 0.2 },
+          "interactions": [
+            {
+              "id": "interaction_collect_needle",
+              "trigger": "click",
+              "effects": [
+                { "type": "addItem", "itemId": "item_needle" },
+                { "type": "setFlag", "flag": "flag_needle_collected", "value": true }
+              ],
+              "feedback": "작은 바늘이 들어 있다."
+            }
+          ]
+        },
+        {
+          "id": "hotspot_wardrobe_thread",
+          "label": "올이 풀린 옷",
+          "bounds": { "x": 0.62, "y": 0.21, "width": 0.2, "height": 0.42 },
+          "interactions": [
+            {
+              "id": "interaction_collect_thread",
+              "trigger": "click",
+              "effects": [
+                { "type": "addItem", "itemId": "item_thread" },
+                { "type": "setFlag", "flag": "flag_thread_collected", "value": true }
+              ],
+              "feedback": "길게 풀린 실을 얻었다."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "view_childhood_left",
+      "direction": "left",
+      "background": "assets/backgrounds/childhood/left.webp",
+      "hotspots": [
+        {
+          "id": "hotspot_bookshelf",
+          "label": "뒤섞인 책꽂이",
+          "bounds": { "x": 0.08, "y": 0.18, "width": 0.28, "height": 0.6 },
+          "interactions": [
+            {
+              "id": "interaction_inspect_bookshelf",
+              "trigger": "click",
+              "effects": [
+                { "type": "goToView", "viewId": "view_childhood_bookshelf" }
+              ],
+              "feedback": "문틀의 키 표시와 책등 색이 닮았다."
+            }
+          ]
+        },
+        {
+          "id": "hotspot_bed",
+          "label": "침대 밑",
+          "bounds": { "x": 0.45, "y": 0.64, "width": 0.42, "height": 0.18 },
+          "interactions": [
+            {
+              "id": "interaction_place_repaired_bear",
+              "trigger": "useItem",
+              "itemId": "item_repaired_bear",
+              "when": [
+                { "type": "hasItem", "itemId": "item_repaired_bear" }
+              ],
+              "effects": [
+                { "type": "removeItem", "itemId": "item_repaired_bear" },
+                { "type": "addItem", "itemId": "item_storybook_page_1" },
+                { "type": "setFlag", "flag": "flag_storybook_page_1_found", "value": true }
+              ],
+              "feedback": "곰인형을 그림일기와 같은 자리에 두자 종이 한 장이 떨어졌다."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "view_childhood_bookshelf",
+      "direction": "inspect",
+      "background": "assets/puzzles/childhood/bookshelf.webp",
+      "hotspots": []
+    },
+    {
+      "id": "view_childhood_train",
+      "direction": "inspect",
+      "background": "assets/puzzles/childhood/train.webp",
+      "hotspots": []
+    },
+    {
+      "id": "view_childhood_phone",
+      "direction": "inspect",
+      "background": "assets/puzzles/childhood/rotary-phone.webp",
+      "hotspots": []
+    }
+  ],
+  "items": [
+    {
+      "id": "item_torn_bear",
+      "name": "뜯어진 곰인형",
+      "description": "등 부분이 뜯어져 솜이 빠져나오고 있다.",
+      "icon": "assets/items/childhood/torn-bear.webp"
+    },
+    {
+      "id": "item_needle",
+      "name": "바늘",
+      "icon": "assets/items/childhood/needle.webp"
+    },
+    {
+      "id": "item_thread",
+      "name": "실",
+      "icon": "assets/items/childhood/thread.webp"
+    },
+    {
+      "id": "item_repaired_bear",
+      "name": "수선된 곰인형",
+      "icon": "assets/items/childhood/repaired-bear.webp"
+    },
+    {
+      "id": "item_storybook_page_1",
+      "name": "동화책 첫 번째 페이지",
+      "icon": "assets/items/childhood/storybook-page-1.webp"
+    },
+    {
+      "id": "item_block_set",
+      "name": "색깔 블록 묶음",
+      "icon": "assets/items/childhood/block-set.webp"
+    },
+    {
+      "id": "item_storybook_page_2",
+      "name": "동화책 두 번째 페이지",
+      "icon": "assets/items/childhood/storybook-page-2.webp"
+    },
+    {
+      "id": "item_completed_storybook",
+      "name": "완성된 동화책",
+      "icon": "assets/items/childhood/completed-storybook.webp"
+    },
+    {
+      "id": "item_courage",
+      "name": "용기의 눈물",
+      "icon": "assets/items/emotions/courage.webp"
+    },
+    {
+      "id": "item_childhood_door_key",
+      "name": "거대한 문의 열쇠",
+      "icon": "assets/items/keys/childhood-door-key.webp"
+    }
+  ],
+  "puzzles": [
+    {
+      "id": "puzzle_repair_bear",
+      "name": "곰인형 수선",
+      "when": [
+        { "type": "hasItem", "itemId": "item_torn_bear" },
+        { "type": "hasItem", "itemId": "item_needle" },
+        { "type": "hasItem", "itemId": "item_thread" }
+      ],
+      "effects": [
+        { "type": "removeItem", "itemId": "item_needle" },
+        { "type": "removeItem", "itemId": "item_thread" },
+        { "type": "replaceItem", "from": "item_torn_bear", "to": "item_repaired_bear" },
+        { "type": "setFlag", "flag": "flag_bear_repaired", "value": true }
+      ],
+      "hints": [
+        "곰인형의 뜯어진 부분을 고칠 도구가 필요하다.",
+        "옷장과 서랍 안에서 바느질에 필요한 물건을 찾아보자.",
+        "바늘과 실을 조합한 뒤 뜯어진 곰인형에 사용하자."
+      ]
+    },
+    {
+      "id": "puzzle_repair_train",
+      "name": "장난감 기차 수리",
+      "when": [
+        { "type": "hasItem", "itemId": "item_block_set" }
+      ],
+      "effects": [
+        { "type": "removeItem", "itemId": "item_block_set" },
+        { "type": "addItem", "itemId": "item_storybook_page_2" },
+        { "type": "setFlag", "flag": "flag_train_repaired", "value": true }
+      ],
+      "hints": [
+        "기차에는 색깔 블록이 들어갈 빈자리가 있다.",
+        "방 안의 기차 사진에 블록 순서가 보인다.",
+        "사진 속 색 순서대로 블록을 기차에 끼우자."
+      ]
+    },
+    {
+      "id": "puzzle_complete_storybook",
+      "name": "점박이 곰과 하얀 곰",
+      "when": [
+        { "type": "hasItem", "itemId": "item_storybook_page_1" },
+        { "type": "hasItem", "itemId": "item_storybook_page_2" }
+      ],
+      "effects": [
+        { "type": "removeItem", "itemId": "item_storybook_page_1" },
+        { "type": "replaceItem", "from": "item_storybook_page_2", "to": "item_completed_storybook" },
+        { "type": "setFlag", "flag": "flag_storybook_completed", "value": true }
+      ],
+      "hints": [
+        "찢어진 페이지들은 한 권의 책에서 나온 것 같다.",
+        "페이지의 그림과 문장이 이어지는 순서를 찾아보자.",
+        "두 페이지를 순서대로 맞춰 완성된 동화책을 만들자."
+      ]
+    },
+    {
+      "id": "puzzle_call_1366",
+      "name": "도움을 요청하는 전화",
+      "when": [
+        { "type": "hasItem", "itemId": "item_completed_storybook" }
+      ],
+      "effects": [
+        { "type": "addItem", "itemId": "item_courage" },
+        { "type": "addItem", "itemId": "item_childhood_door_key" },
+        { "type": "setFlag", "flag": "flag_phone_code_entered", "value": true },
+        { "type": "setFlag", "flag": "flag_courage_obtained", "value": true }
+      ],
+      "hints": [
+        "완성된 동화책에는 혼자가 아닐 수 있다는 메시지가 있다.",
+        "책의 마지막에서 도움을 요청할 수 있는 번호를 찾아보자.",
+        "전화기에 1366을 입력하자."
+      ]
+    }
+  ],
+  "completion": {
+    "requiredFlags": ["flag_childhood_door_open"]
+  }
+}

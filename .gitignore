@@ -1,0 +1,13 @@
+# Godot generated files
+.godot/
+
+# Exported builds
+build/
+
+# OS and editor files
+.DS_Store
+*.swp
+*.tmp
+
+# Local save/test artifacts
+test-results/

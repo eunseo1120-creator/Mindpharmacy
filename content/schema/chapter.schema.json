@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mind-pharmacy.local/schema/chapter.schema.json",
+  "title": "마음 약방 챕터",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "startViewId",
+    "views",
+    "items",
+    "puzzles",
+    "completion"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "contentWarnings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "startViewId": {
+      "$ref": "#/$defs/id"
+    },
+    "views": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/view"
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    },
+    "puzzles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/puzzle"
+      }
+    },
+    "completion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredFlags"],
+      "properties": {
+        "requiredFlags": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "assetPath": {
+      "type": "string",
+      "pattern": "^assets/"
+    },
+    "bounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+      }
+    },
+    "condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "itemId"],
+          "properties": {
+            "type": { "const": "hasItem" },
+            "itemId": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "flag", "value"],
+          "properties": {
+            "type": { "const": "flagEquals" },
+            "flag": { "$ref": "#/$defs/id" },
+            "value": { "type": "boolean" }
+          }
+        }
+      ]
+    },
+    "effect": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "itemId"],
+          "properties": {
+            "type": {
+              "enum": ["addItem", "removeItem"]
+            },
+            "itemId": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "from", "to"],
+          "properties": {
+            "type": { "const": "replaceItem" },
+            "from": { "$ref": "#/$defs/id" },
+            "to": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "flag", "value"],
+          "properties": {
+            "type": { "const": "setFlag" },
+            "flag": { "$ref": "#/$defs/id" },
+            "value": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "viewId"],
+          "properties": {
+            "type": { "const": "goToView" },
+            "viewId": { "$ref": "#/$defs/id" }
+          }
+        }
+      ]
+    },
+    "interaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "trigger", "effects"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "trigger": {
+          "enum": ["click", "useItem"]
+        },
+        "itemId": { "$ref": "#/$defs/id" },
+        "when": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/condition" }
+        },
+        "effects": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/effect" }
+        },
+        "feedback": {
+          "type": "string"
+        }
+      }
+    },
+    "hotspot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "bounds", "interactions"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "bounds": { "$ref": "#/$defs/bounds" },
+        "visibleWhen": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/condition" }
+        },
+        "interactions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/interaction" }
+        }
+      }
+    },
+    "view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "direction", "background", "hotspots"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "direction": {
+          "enum": ["left", "front", "right", "back", "inspect"]
+        },
+        "background": { "$ref": "#/$defs/assetPath" },
+        "hotspots": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/hotspot" }
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "icon"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "icon": { "$ref": "#/$defs/assetPath" }
+      }
+    },
+    "puzzle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "when", "effects", "hints"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "when": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/condition" }
+        },
+        "effects": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/effect" }
+        },
+        "hints": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

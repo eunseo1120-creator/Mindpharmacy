@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "chapters": [
+    {
+      "id": "chapter_childhood",
+      "path": "content/chapters/childhood.json",
+      "status": "prototype"
+    }
+  ]
+}
