@@ -202,11 +202,11 @@ func _build_modal() -> void:
 
 func _render() -> void:
 	var scene_id := "pharmacy"
-	if current_place == "childhood":
-		scene_id = "childhood_" + DIRECTIONS[direction_index]
+	if current_place in ["childhood", "school", "adult", "truth"]:
+		scene_id = current_place + "_" + DIRECTIONS[direction_index]
 	room_art.set_scene(scene_id, flags)
-	left_button.visible = current_place == "childhood"
-	right_button.visible = current_place == "childhood"
+	left_button.visible = current_place != "pharmacy"
+	right_button.visible = current_place != "pharmacy"
 	_build_hotspots()
 	_refresh_inventory()
 	_save()
@@ -221,6 +221,17 @@ func _build_hotspots() -> void:
 			_add_hotspot("조제대", Rect2(0.2, 0.5, 0.62, 0.42), _brew_medicine)
 		return
 
+	if current_place == "childhood":
+		_build_childhood_hotspots()
+	elif current_place == "school":
+		_build_school_hotspots()
+	elif current_place == "adult":
+		_build_adult_hotspots()
+	elif current_place == "truth":
+		_build_truth_hotspots()
+
+
+func _build_childhood_hotspots() -> void:
 	match DIRECTIONS[direction_index]:
 		"front":
 			_add_hotspot("거대한 문", Rect2(0.32, 0.04, 0.36, 0.72), _use_door)
@@ -239,6 +250,53 @@ func _build_hotspots() -> void:
 		"left":
 			_add_hotspot("책꽂이", Rect2(0.04, 0.12, 0.28, 0.6), _inspect_bookshelf)
 			_add_hotspot("침대 밑", Rect2(0.34, 0.54, 0.56, 0.27), _place_bear)
+
+
+func _build_school_hotspots() -> void:
+	match DIRECTIONS[direction_index]:
+		"front":
+			_add_hotspot("교실 문", Rect2(0.7, 0.13, 0.2, 0.62), _use_school_door)
+			_add_hotspot("칠판의 눈", Rect2(0.12, 0.18, 0.5, 0.34), _inspect_blackboard)
+		"right":
+			if not flags.get("tape_collected", false):
+				_add_hotspot("서랍 속 테이프", Rect2(0.13, 0.5, 0.25, 0.23), _collect_tape)
+			_add_hotspot("낙서 책상", Rect2(0.46, 0.42, 0.4, 0.34), _inspect_desk)
+		"back":
+			_add_hotspot("사물함", Rect2(0.52, 0.12, 0.35, 0.62), _open_locker)
+			if not flags.get("shoe_collected", false):
+				_add_hotspot("찢어진 실내화", Rect2(0.16, 0.65, 0.25, 0.18), _collect_shoe)
+		"left":
+			_add_hotspot("창가의 출석표", Rect2(0.12, 0.16, 0.27, 0.42), _inspect_attendance)
+			_add_hotspot("방송 스피커", Rect2(0.64, 0.12, 0.2, 0.18), _quiet_whispers)
+
+
+func _build_adult_hotspots() -> void:
+	match DIRECTIONS[direction_index]:
+		"front":
+			_add_hotspot("현관문", Rect2(0.7, 0.1, 0.2, 0.67), _use_adult_door)
+			_add_hotspot("꺼진 휴대전화", Rect2(0.42, 0.59, 0.15, 0.12), _open_mobile)
+		"right":
+			_add_hotspot("모니터", Rect2(0.17, 0.23, 0.4, 0.34), _inspect_monitor)
+			_add_hotspot("멀티탭", Rect2(0.62, 0.68, 0.24, 0.12), _switch_power)
+		"back":
+			if not flags.get("ticket_collected", false):
+				_add_hotspot("구겨진 버스표", Rect2(0.16, 0.64, 0.25, 0.15), _collect_ticket)
+			_add_hotspot("꿈의 노트", Rect2(0.52, 0.44, 0.3, 0.24), _inspect_dream_note)
+		"left":
+			_add_hotspot("야광 별", Rect2(0.15, 0.14, 0.5, 0.3), _inspect_stars)
+			_add_hotspot("말라버린 화분", Rect2(0.7, 0.52, 0.17, 0.25), _water_plant)
+
+
+func _build_truth_hotspots() -> void:
+	match DIRECTIONS[direction_index]:
+		"front":
+			_add_hotspot("전신 거울", Rect2(0.34, 0.08, 0.31, 0.67), _inspect_mirror)
+		"right":
+			_add_hotspot("세 개의 기록", Rect2(0.18, 0.42, 0.62, 0.3), _inspect_records)
+		"back":
+			_add_hotspot("없었던 문", Rect2(0.35, 0.08, 0.3, 0.68), _use_final_door)
+		"left":
+			_add_hotspot("조제대의 빈 병", Rect2(0.16, 0.5, 0.68, 0.27), _inspect_empty_bottles)
 
 
 func _add_hotspot(label_text: String, normalized_rect: Rect2, callback: Callable) -> void:
@@ -290,16 +348,27 @@ func _refresh_inventory() -> void:
 
 
 func _open_letter() -> void:
-	if flags.get("letter_opened", false):
+	if flags.get("adult_medicine_brewed", false):
+		_enter_truth()
+	elif flags.get("school_medicine_brewed", false):
+		_show_letter(3)
+	elif flags.get("medicine_brewed", false):
+		_show_letter(2)
+	elif flags.get("letter_opened", false):
 		_enter_childhood()
-		return
-	flags["letter_opened"] = true
-	_show_modal(
-		"첫 번째 편지",
-		"[center]약사님,\n\n밤이 되면 집이 너무 커져요.\n문은 바로 앞에 있는데, 혼자서는 열 수가 없어요.\n\n제가 무서움을 지나갈 수 있는 약을 만들어 주세요.[/center]",
-		[{"label": "기억의 방으로", "callback": _enter_childhood}]
-	)
+	else:
+		flags["letter_opened"] = true
+		_show_letter(1)
 	room_art.set_scene("pharmacy", flags)
+
+
+func _show_letter(number: int) -> void:
+	var data: Array = {
+		1: ["첫 번째 편지", "밤이 되면 집이 너무 커져요.\n문은 바로 앞에 있는데 혼자서는 열 수가 없어요.", _enter_childhood],
+		2: ["두 번째 편지", "아무도 없는 교실에서도 웃음소리가 따라와요.\n그들이 붙인 이름 말고, 제 이름을 듣고 싶어요.", _enter_school],
+		3: ["마지막 편지", "다들 앞으로 가는데 제 방만 물속에 잠긴 것 같아요.\n내일 한 가지를 시작할 힘을 처방해 주세요.", _enter_adult]
+	}[number]
+	_show_modal(str(data[0]), "[center]약사님,\n\n" + str(data[1]) + "\n\n— 이름이 번진 손님[/center]", [{"label": "기억의 방으로", "callback": data[2]}])
 
 
 func _enter_childhood() -> void:
@@ -307,6 +376,31 @@ func _enter_childhood() -> void:
 	current_place = "childhood"
 	direction_index = 0
 	_set_status("좌우 화살표로 방을 둘러보세요.")
+	_render()
+
+
+func _enter_school() -> void:
+	_close_modal()
+	current_place = "school"
+	direction_index = 0
+	_set_status("붉은 교실 · 남의 말과 나의 목소리를 구분하세요.")
+	_render()
+
+
+func _enter_adult() -> void:
+	_close_modal()
+	current_place = "adult"
+	direction_index = 0
+	_set_status("가라앉은 자취방 · 오늘 할 수 있는 한 가지를 찾으세요.")
+	_render()
+
+
+func _enter_truth() -> void:
+	_close_modal()
+	current_place = "truth"
+	direction_index = 0
+	flags["truth_entered"] = true
+	_set_status("편지함은 비어 있다. 약방에는 거울만 남았다.")
 	_render()
 
 
@@ -408,6 +502,26 @@ func _combine_items() -> void:
 			[]
 		)
 		_set_status("완성된 동화책의 뒷면에서 번호를 찾았다.")
+	elif inventory.has("torn_shoe") and inventory.has("clear_tape"):
+		_remove_item("torn_shoe")
+		_remove_item("clear_tape")
+		_add_item("repaired_shoe")
+		flags["shoe_repaired"] = true
+		_show_modal("되찾은 이름", "실내화 안쪽, 테이프에 가려졌던 글씨가 드러난다.\n\n[center][font_size=32]윤 · 슬 · 기[/font_size][/center]\n\n낙서는 이름이 아니다.", [])
+		_set_status("지워지지 않은 본래의 이름을 찾았다.")
+	elif inventory.has("bus_ticket") and inventory.has("phone"):
+		flags["phone_unlocked"] = true
+		_remove_item("bus_ticket")
+		_show_modal("잠금 화면", "표의 날짜 10월 9일을 입력했다.\n\n메모 앱에는 한 문장만 남아 있다.\n[italic]“내일 오전 9시, 창가의 화분에 물 주기.”[/italic]", [])
+		_set_status("휴대전화가 열렸다. 내일을 위한 작은 약속을 찾았다.")
+	elif flags.get("records_seen", false) and inventory.has("courage_vial") and inventory.has("will_vial") and inventory.has("self_trust_vial"):
+		_remove_item("courage_vial")
+		_remove_item("will_vial")
+		_remove_item("self_trust_vial")
+		_add_item("heart_key")
+		flags["heart_key_made"] = true
+		_show_modal("마음의 열쇠", "[center]용기, 의지, 자기 신뢰가 하나의 열쇠가 된다.\n\n상처가 사라진 것은 아니다.\n하지만 이제 문을 열 사람을 알고 있다.[/center]", [])
+		_set_status("마음의 열쇠가 완성되었다.")
 	else:
 		_set_status("지금 가진 물건들로는 조합할 수 없다.")
 	_refresh_inventory()
@@ -460,6 +574,189 @@ func _use_door() -> void:
 	_render()
 
 
+func _collect_tape() -> void:
+	_add_item("clear_tape")
+	flags["tape_collected"] = true
+	_set_status("투명 테이프를 찾았다. 찢어진 것을 붙일 수 있다.")
+	_render()
+
+
+func _collect_shoe() -> void:
+	_add_item("torn_shoe")
+	flags["shoe_collected"] = true
+	_set_status("낙서로 이름이 가려진 찢어진 실내화를 주웠다.")
+	_render()
+
+
+func _inspect_desk() -> void:
+	flags["desk_read"] = true
+	_show_modal("낙서 책상", "겹쳐 쓴 단어들 사이에서 같은 획만 따라 읽는다.\n\n[center][font_size=30]셋 · 하나 · 넷[/font_size][/center]\n\n사물함 자물쇠는 세 자리다.", [])
+	_set_status("사물함 암호의 순서를 찾았다.")
+	_save()
+
+
+func _open_locker() -> void:
+	if not flags.get("desk_read", false):
+		_set_status("세 자리 자물쇠가 걸려 있다.")
+		return
+	if flags.get("locker_open", false):
+		_set_status("빈 사물함 안쪽에 ‘네가 들은 말은 네 이름이 아니다’라고 적혀 있다.")
+		return
+	flags["locker_open"] = true
+	_add_item("name_card")
+	_show_modal("314번 사물함", "자물쇠가 열린다. 출석표에서 뜯긴 이름표가 들어 있다.\n\n[center][font_size=30]윤슬기[/font_size][/center]", [])
+	_set_status("본래 이름이 적힌 이름표를 찾았다.")
+	_render()
+
+
+func _inspect_attendance() -> void:
+	flags["attendance_read"] = true
+	_show_modal("출석표", "17번 자리만 검게 지워져 있다.\n하지만 종이를 빛에 비추면 이름의 눌린 자국이 남아 있다.\n\n[italic]“지워진 것과 없었던 것은 다르다.”[/italic]", [])
+	_set_status("17이라는 번호와 지워진 이름의 흔적을 기억했다.")
+	_save()
+
+
+func _inspect_blackboard() -> void:
+	if not flags.get("attendance_read", false) or not flags.get("locker_open", false) or not flags.get("shoe_repaired", false):
+		_set_status("칠판의 눈들이 웅성거린다. 이름, 번호, 찢긴 흔적이 아직 이어지지 않는다.")
+		return
+	flags["blackboard_solved"] = true
+	_add_item("will")
+	_add_item("school_key")
+	_show_modal("나는 17번이 아니다", "[center]이름표를 칠판에 붙인다.\n\n“나는 윤슬기다.”\n\n그 순간 수십 개의 눈이 분필 가루로 무너진다.\n책상 아래에서 굳은 의지와 교실 열쇠가 나타난다.[/center]", [])
+	_set_status("타인이 붙인 이름과 자신의 이름을 분리했다.")
+	_render()
+
+
+func _quiet_whispers() -> void:
+	if not flags.get("blackboard_solved", false):
+		_set_status("스피커는 알아들을 수 없는 별명들을 반복한다.")
+	else:
+		flags["whispers_quiet"] = true
+		_set_status("방송 스위치를 내렸다. 이제 자기 숨소리가 들린다.")
+		_render()
+
+
+func _use_school_door() -> void:
+	if selected_item != "school_key" or not flags.get("whispers_quiet", false):
+		_set_status("열쇠와, 소음을 끌 결심이 모두 필요하다.")
+		return
+	_remove_item("school_key")
+	flags["school_complete"] = true
+	flags["chapter_returned"] = true
+	selected_item = ""
+	_show_modal("교실 밖으로", "[center]복도에는 아무도 없다.\n끝까지 따라오던 웃음소리도 멎었다.\n\n남의 말은 기억에 남지만, 나의 이름이 되지는 않는다.[/center]", [{"label": "약방으로 돌아가기", "callback": _return_to_pharmacy}])
+	_render()
+
+
+func _collect_ticket() -> void:
+	_add_item("bus_ticket")
+	flags["ticket_collected"] = true
+	_set_status("10월 9일, 고향행 버스표. 사용되지 않았다.")
+	_render()
+
+
+func _inspect_monitor() -> void:
+	flags["monitor_read"] = true
+	_show_modal("두 개의 창", "[b]최종 면접 결과: 불합격[/b]\n\n그 뒤로 타인의 합격, 여행, 결혼 사진이 끝없이 흐른다.\n화면 구석의 작은 글씨:\n[italic]‘피드는 한 사람의 하루 전체가 아닙니다.’[/italic]", [])
+	_set_status("빛이 너무 강해 방의 다른 흔적이 보이지 않는다.")
+	_save()
+
+
+func _switch_power() -> void:
+	flags["power_off"] = not flags.get("power_off", false)
+	_set_status("모니터를 껐다. 천장의 야광 별이 보이기 시작한다." if flags["power_off"] else "모니터가 다시 켜졌다.")
+	_render()
+
+
+func _inspect_stars() -> void:
+	if not flags.get("power_off", false):
+		_set_status("모니터 불빛 때문에 천장이 보이지 않는다.")
+		return
+	flags["stars_read"] = true
+	_show_modal("야광 별자리", "별 네 개 아래에 짧은 문장이 숨어 있다.\n\n[center]물 · 주 · 기 · 9[/center]\n\n‘해야 할 인생’이 아니라 ‘내일 할 한 가지’.", [])
+	_set_status("화분과 9시를 가리키는 단서를 찾았다.")
+	_save()
+
+
+func _inspect_dream_note() -> void:
+	flags["dream_note_read"] = true
+	if not inventory.has("phone"):
+		_add_item("phone")
+	_show_modal("꿈의 노트", "첫 장에는 거창한 목표가 빼곡하지만 마지막 장에는 한 줄뿐이다.\n\n[italic]“식물을 살리는 일부터 다시 시작하고 싶다.”[/italic]\n\n노트 밑에서 꺼진 휴대전화를 찾았다.", [])
+	_set_status("휴대전화와 화분에 관한 기록을 찾았다.")
+	_render()
+
+
+func _open_mobile() -> void:
+	if not inventory.has("phone"):
+		_set_status("휴대전화 모양의 먼지 자국만 남아 있다.")
+	elif not flags.get("phone_unlocked", false):
+		_set_status("네 자리 날짜 암호가 필요하다. 사용하지 못한 표가 있었던 것 같다.")
+	else:
+		_set_status("메모: ‘내일 오전 9시, 창가의 화분에 물 주기.’")
+
+
+func _water_plant() -> void:
+	if not flags.get("phone_unlocked", false) or not flags.get("stars_read", false):
+		_set_status("말라버린 흙. 무엇부터 해야 할지 정하지 못했다.")
+		return
+	if flags.get("plant_watered", false):
+		_set_status("아주 작은 새잎이 물 위로 고개를 든다.")
+		return
+	flags["plant_watered"] = true
+	_add_item("self_trust")
+	_add_item("adult_key")
+	_show_modal("한 가지의 내일", "[center]컵 한 잔의 물이 흙에 스민다.\n죽었다고 생각한 줄기에서 작은 초록이 드러난다.\n\n성공할 거라는 확신이 아니라,\n다시 해볼 수 있다는 자기 신뢰를 얻었다.[/center]", [])
+	_set_status("자기 신뢰와 현관 열쇠를 얻었다.")
+	_render()
+
+
+func _use_adult_door() -> void:
+	if selected_item != "adult_key":
+		_set_status("문밖의 하루가 두렵다. 작은 약속을 끝내고 열쇠를 찾아야 한다.")
+		return
+	_remove_item("adult_key")
+	flags["adult_complete"] = true
+	flags["chapter_returned"] = true
+	selected_item = ""
+	_show_modal("수면 위로", "[center]현관문을 열자 물처럼 흔들리던 공기가 빠져나간다.\n\n오늘 해결한 것은 인생이 아니라 화분 하나였다.\n그것으로 충분한 날도 있다.[/center]", [{"label": "약방으로 돌아가기", "callback": _return_to_pharmacy}])
+	_render()
+
+
+func _inspect_mirror() -> void:
+	flags["mirror_seen"] = true
+	_show_modal("거울 속 손님", "[center]흰 가운의 약사 뒤로 아이, 학생, 청년이 차례로 겹친다.\n마지막에 남는 얼굴은 지금의 나다.\n\n편지의 번진 서명도, 기록 속 이름도 모두 [b]윤슬기[/b]였다.[/center]", [])
+	_set_status("약사와 세 손님이 같은 사람임을 알아차렸다.")
+	_save()
+
+
+func _inspect_records() -> void:
+	if not flags.get("mirror_seen", false):
+		_set_status("스케치북, 이름표, 휴대전화. 아직 누구의 것인지 모르겠다.")
+		return
+	flags["records_seen"] = true
+	_show_modal("세 개의 기록", "그림일기의 흰 곰, 17번 이름표, 오전 9시 메모.\n서로 다른 시절의 글씨 끝에 같은 버릇이 남아 있다.\n\n[italic]ㅅ의 마지막 획이 유난히 길다.[/italic]", [])
+	_set_status("세 감정의 병을 조합할 수 있다.")
+	_save()
+
+
+func _inspect_empty_bottles() -> void:
+	_set_status("약은 상처를 지우지 않았다. 다음 행동을 고를 틈을 만들어 주었다.")
+
+
+func _use_final_door() -> void:
+	if not flags.get("heart_key_made", false) or selected_item != "heart_key":
+		_set_status("문은 나타났지만 손잡이가 없다. 세 개의 감정을 하나로 묶어야 한다.")
+		return
+	_remove_item("heart_key")
+	flags["ending_complete"] = true
+	selected_item = ""
+	_show_modal("문을 여는 사람", "[center]따뜻한 아침빛이 현실의 방 안으로 들어온다.\n\n“애초에 손님은 없었다.\n약사는 내가 필요했던 다정한 어른의 모습이었다.”\n\n상처는 내 잘못이 아니었다.\n그리고 이제, 도움을 받으며 내가 문을 열 차례다.\n\n[b]끝[/b][/center]", [])
+	_set_status("현실의 아침으로 돌아왔다.")
+	_render()
+
+
 func _return_to_pharmacy() -> void:
 	_close_modal()
 	current_place = "pharmacy"
@@ -468,20 +765,29 @@ func _return_to_pharmacy() -> void:
 
 
 func _brew_medicine() -> void:
-	if flags.get("medicine_brewed", false):
-		_set_status("작은 병 안에서 따뜻한 빛이 흔들린다.")
-		return
-	if not inventory.has("courage"):
-		_set_status("조제할 감정 재료가 없다.")
-		return
-	_remove_item("courage")
-	flags["medicine_brewed"] = true
-	_show_modal(
-		"투명망토 물약",
-		"[center]용기의 눈물이 천천히 금빛으로 변한다.\n\n첫 번째 기억의 약이 완성되었다.\n\n[b]프로토타입 완료[/b][/center]",
-		[]
-	)
-	_set_status("첫 번째 편지의 약을 완성했다.")
+	if inventory.has("courage"):
+		_remove_item("courage")
+		_add_item("courage_vial")
+		flags["medicine_brewed"] = true
+		flags["chapter_returned"] = false
+		_show_modal("경계를 두르는 물약", "[center]용기의 눈물이 금빛 막이 된다.\n두려움이 없어지는 약이 아니라,\n도움을 청할 때까지 나를 지켜 주는 약이다.[/center]", [])
+		_set_status("두 번째 편지가 은은하게 빛난다.")
+	elif inventory.has("will"):
+		_remove_item("will")
+		_add_item("will_vial")
+		flags["school_medicine_brewed"] = true
+		flags["chapter_returned"] = false
+		_show_modal("고요를 고르는 솜", "[center]굳은 의지가 작은 흰 솜으로 피어난다.\n모든 소리를 막는 대신,\n어떤 목소리를 믿을지 고를 수 있게 한다.[/center]", [])
+		_set_status("마지막 편지가 남았다.")
+	elif inventory.has("self_trust"):
+		_remove_item("self_trust")
+		_add_item("self_trust_vial")
+		flags["adult_medicine_brewed"] = true
+		flags["chapter_returned"] = false
+		_show_modal("내일의 수액", "[center]자기 신뢰가 한 방울씩 떨어진다.\n완벽해질 힘이 아니라,\n내일 한 가지를 이어 갈 힘이다.[/center]", [])
+		_set_status("손님은 오지 않는다. 편지함이 텅 비었다.")
+	else:
+		_set_status("지금 조제할 감정 재료가 없다.")
 	_render()
 
 
@@ -509,6 +815,41 @@ func _show_hint() -> void:
 			hint = "완성된 동화책 뒷면의 번호를 전화기에 입력하세요."
 		else:
 			hint = "열쇠를 선택한 뒤 정면의 거대한 문을 눌러 보세요."
+	elif current_place == "school":
+		if not flags.get("desk_read", false):
+			hint = "낙서 책상에서 반복되는 획을 읽어 보세요."
+		elif not flags.get("locker_open", false):
+			hint = "책상에서 찾은 314를 사물함에 사용하세요."
+		elif not flags.get("shoe_repaired", false):
+			hint = "서랍의 테이프로 찢어진 실내화를 수선하세요."
+		elif not flags.get("blackboard_solved", false):
+			hint = "출석표의 번호, 이름표, 수선된 실내화의 이름을 칠판에서 연결하세요."
+		elif not flags.get("whispers_quiet", false):
+			hint = "왼쪽 벽의 방송 스피커를 끄세요."
+		else:
+			hint = "교실 열쇠를 선택하고 정면 문을 여세요."
+	elif current_place == "adult":
+		if not flags.get("power_off", false):
+			hint = "멀티탭으로 모니터를 꺼 보세요."
+		elif not flags.get("stars_read", false):
+			hint = "어두워진 방의 야광 별을 살펴보세요."
+		elif not inventory.has("phone"):
+			hint = "꿈의 노트 아래를 살펴보세요."
+		elif not flags.get("phone_unlocked", false):
+			hint = "사용하지 못한 버스표의 날짜와 휴대전화를 조합하세요."
+		elif not flags.get("plant_watered", false):
+			hint = "메모의 작은 약속을 창가에서 실행하세요."
+		else:
+			hint = "현관 열쇠를 선택하고 문을 여세요."
+	elif current_place == "truth":
+		if not flags.get("mirror_seen", false):
+			hint = "정면의 거울에서 손님의 얼굴을 확인하세요."
+		elif not flags.get("records_seen", false):
+			hint = "오른쪽의 세 기록에서 공통된 글씨를 찾으세요."
+		elif not flags.get("heart_key_made", false):
+			hint = "인벤토리의 감정 병 세 개를 조합하세요."
+		else:
+			hint = "뒤쪽 문에 마음의 열쇠를 사용하세요."
 	_show_modal("힌트", "[center]" + hint + "[/center]", [])
 
 
@@ -580,12 +921,13 @@ func _remove_item(item: String) -> void:
 
 
 func _direction_name() -> String:
-	return {
-		"front": "정면 · 거대한 문",
-		"right": "오른쪽 · 망가진 장난감",
-		"back": "뒤쪽 · 옷장과 서랍",
-		"left": "왼쪽 · 침대와 책꽂이"
-	}.get(DIRECTIONS[direction_index], "")
+	var names := {
+		"childhood": ["정면 · 거대한 문", "오른쪽 · 망가진 장난감", "뒤쪽 · 옷장과 서랍", "왼쪽 · 침대와 책꽂이"],
+		"school": ["정면 · 칠판과 교실 문", "오른쪽 · 낙서 책상", "뒤쪽 · 사물함", "왼쪽 · 출석표와 스피커"],
+		"adult": ["정면 · 현관과 휴대전화", "오른쪽 · 모니터와 멀티탭", "뒤쪽 · 쓰레기 더미와 노트", "왼쪽 · 야광 별과 화분"],
+		"truth": ["정면 · 전신 거울", "오른쪽 · 세 개의 기록", "뒤쪽 · 없었던 문", "왼쪽 · 빈 조제대"]
+	}
+	return names.get(current_place, ["", "", "", ""])[direction_index]
 
 
 func _item_name(item: String) -> String:
@@ -600,6 +942,20 @@ func _item_name(item: String) -> String:
 		"completed_storybook": "완성된 동화책",
 		"courage": "용기의 눈물",
 		"door_key": "거대한 문의 열쇠"
+		,"clear_tape": "투명 테이프"
+		,"torn_shoe": "찢어진 실내화"
+		,"repaired_shoe": "수선된 실내화"
+		,"name_card": "윤슬기 이름표"
+		,"will": "굳은 의지"
+		,"school_key": "교실 열쇠"
+		,"bus_ticket": "10월 9일 버스표"
+		,"phone": "꺼진 휴대전화"
+		,"self_trust": "자기 신뢰"
+		,"adult_key": "현관 열쇠"
+		,"courage_vial": "용기의 병"
+		,"will_vial": "의지의 병"
+		,"self_trust_vial": "자기 신뢰의 병"
+		,"heart_key": "마음의 열쇠"
 	}.get(item, item)
 
 
@@ -615,6 +971,20 @@ func _item_symbol(item: String) -> String:
 		"completed_storybook": "冊",
 		"courage": "◇",
 		"door_key": "⚿"
+		,"clear_tape": "▧"
+		,"torn_shoe": "鞋"
+		,"repaired_shoe": "鞋"
+		,"name_card": "名"
+		,"will": "◆"
+		,"school_key": "⚿"
+		,"bus_ticket": "票"
+		,"phone": "▣"
+		,"self_trust": "◇"
+		,"adult_key": "⚿"
+		,"courage_vial": "Ⅰ"
+		,"will_vial": "Ⅱ"
+		,"self_trust_vial": "Ⅲ"
+		,"heart_key": "♢"
 	}.get(item, "·")
 
 

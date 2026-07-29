@@ -22,19 +22,23 @@ Rusty Lake 계열의 정적 2D 포인트앤클릭 문법을 참고한 멀티플�
 
 바로 실행 가능한 흐름과 조작법은 [Godot 프로토타입 안내](docs/prototype-guide.md)를 참고한다.
 
+현재 프로토타입에는 약방 프롤로그, 유년기·청소년기·성인기 세 기억의 방, 진실의 방과 엔딩까지 하나의 플레이 흐름으로 구현되어 있다. 배경은 최종 아트 제작 전에 방 구조와 상호작용을 검증하기 위한 코드 기반 콘셉트 스케치다.
+
 ## 문서
 
 - [게임 설계](docs/game-design.md)
+- [전체 챕터 상세 설계](docs/full-chapter-blueprint.md)
+- [팀 공유용 Word 설계서](docs/mind-pharmacy-full-chapter-blueprint.docx)
 - [기술 구조](docs/technical-architecture.md)
 - [반응형 UI 명세](docs/ui-spec.md)
 - [MVP·플랫폼 검수 계획](docs/mvp-platform-plan.md)
 - [콘텐츠 작성 규칙](docs/content-authoring.md)
 - [자산 목록](docs/asset-checklist.md)
 
-## 콘텐츠 초안
+## 콘텐츠와 플레이 흐름
 
 - `content/schema/chapter.schema.json`: 챕터 JSON 형식
-- `content/chapters/childhood.json`: 유아기 세로 슬라이스 예시
+- `content/chapters/childhood.json`: 유아기 데이터 구조 예시
 - `content/manifest.json`: 게임이 불러올 챕터 목록
 - `tools/validate-content.mjs`: ID·아이템·뷰·완료 조건 검사
 - `tools/snapshot_ideation.py`: DOCX 버전 스냅샷과 문단·이미지 차이 검사
@@ -51,14 +55,13 @@ node tools/validate-content.mjs
 python tools/snapshot_ideation.py /path/to/ideation.docx
 ```
 
-## 개발 순서
+## 다음 개발 순서
 
-1. 현재 포함된 약방·유아기 세로 슬라이스를 팀이 함께 검토한다.
-2. 입력, 인벤토리, 조합, 퍼즐 상태, 저장·불러오기를 실제 기기에서 검증한다.
-3. 같은 시스템에 청소년기와 성인기 콘텐츠 데이터를 추가한다.
-4. 진실의 방과 엔딩을 연결한다.
+1. 전체 흐름과 퍼즐 난이도를 팀이 함께 플레이테스트한다.
+2. 코드 기반 방 그림을 최종 4:3 배경과 상태별 오브젝트 이미지로 교체한다.
+3. 콘텐츠 정의를 JSON 기반 런타임으로 이전해 기획과 코드의 결합을 낮춘다.
+4. 설정에 콘텐츠 경고, 음향·화면 효과 감소, 도움 정보 화면을 추가한다.
 5. 플랫폼별 내보내기와 모바일 터치 QA를 완료한다.
-6. 필요할 때만 앱 스토어용 래퍼를 추가한다.
 
 ## Ideation 업데이트 원칙
 

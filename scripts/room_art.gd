@@ -41,6 +41,12 @@ func _draw_room(rect: Rect2) -> void:
 			_draw_childhood_back(rect)
 		"childhood_left":
 			_draw_childhood_left(rect)
+		"school_front", "school_right", "school_back", "school_left":
+			_draw_school(rect, scene_id.trim_prefix("school_"))
+		"adult_front", "adult_right", "adult_back", "adult_left":
+			_draw_adult(rect, scene_id.trim_prefix("adult_"))
+		"truth_front", "truth_right", "truth_back", "truth_left":
+			_draw_truth(rect, scene_id.trim_prefix("truth_"))
 		_:
 			_draw_pharmacy(rect)
 
@@ -190,6 +196,113 @@ func _draw_childhood_left(rect: Rect2) -> void:
 				Vector2(24, shelf.size.y / 3.0 - 28)
 			)
 			draw_rect(book, [Color("#8d5540"), Color("#68775a"), Color("#c1a45f"), Color("#594b60")][column])
+
+
+func _draw_school(rect: Rect2, direction: String) -> void:
+	_draw_background(rect, Color("#714b4e"))
+	var sunset := Rect2(rect.position, Vector2(rect.size.x, rect.size.y * 0.72))
+	draw_rect(sunset, Color(0.45, 0.12, 0.12, 0.18))
+	if direction == "front":
+		var board := Rect2(rect.position + rect.size * Vector2(0.1, 0.16), rect.size * Vector2(0.5, 0.38))
+		draw_rect(board, Color("#27342d"))
+		for row in range(3):
+			for col in range(6):
+				var eye := board.position + Vector2(35 + col * board.size.x / 6.0, 45 + row * board.size.y / 3.0)
+				draw_arc(eye, 13, 0, PI, 16, Color("#bfb49c"), 2)
+				draw_circle(eye, 3, Color("#c86555"))
+		var door := Rect2(rect.position + rect.size * Vector2(0.72, 0.13), rect.size * Vector2(0.18, 0.59))
+		draw_rect(door, Color("#46342f"))
+		draw_circle(door.position + door.size * Vector2(0.18, 0.52), 6, GOLD)
+	elif direction == "right":
+		for index in range(3):
+			var desk := Rect2(rect.position + rect.size * Vector2(0.16 + index * 0.23, 0.46 + index * 0.06), rect.size * Vector2(0.25, 0.15))
+			draw_rect(desk, Color("#68483a"))
+			draw_line(desk.position + Vector2(18, 25), desk.end - Vector2(25, 18), Color("#241a18"), 3)
+	elif direction == "back":
+		var locker := Rect2(rect.position + rect.size * Vector2(0.5, 0.12), rect.size * Vector2(0.36, 0.6))
+		draw_rect(locker, Color("#766f62"))
+		for x in range(3):
+			for y in range(3):
+				var cell := Rect2(locker.position + Vector2(x * locker.size.x / 3.0, y * locker.size.y / 3.0), locker.size / 3.0)
+				draw_rect(cell.grow(-3), Color("#625d54"), false, 2)
+		draw_string(ThemeDB.fallback_font, locker.position + Vector2(18, 32), "314", HORIZONTAL_ALIGNMENT_LEFT, -1, 19, PAPER)
+	else:
+		var window := Rect2(rect.position + rect.size * Vector2(0.1, 0.12), rect.size * Vector2(0.31, 0.42))
+		draw_rect(window, Color("#a96051"))
+		draw_line(window.get_center() - Vector2(window.size.x / 2, 0), window.get_center() + Vector2(window.size.x / 2, 0), INK, 4)
+		var speaker := rect.position + rect.size * Vector2(0.72, 0.19)
+		draw_circle(speaker, 48, Color("#342c2b"))
+		for radius in [12, 24, 36]:
+			draw_arc(speaker, radius, 0, TAU, 28, Color("#918579"), 2)
+
+
+func _draw_adult(rect: Rect2, direction: String) -> void:
+	_draw_background(rect, Color("#304654"))
+	draw_rect(rect, Color(0.02, 0.12, 0.2, 0.22))
+	for index in range(18):
+		var y := rect.position.y + fmod(index * 71.0, rect.size.y)
+		draw_line(Vector2(rect.position.x, y), Vector2(rect.end.x, y - 18), Color(0.4, 0.72, 0.82, 0.07), 2)
+	if direction == "front":
+		var door := Rect2(rect.position + rect.size * Vector2(0.71, 0.1), rect.size * Vector2(0.18, 0.63))
+		draw_rect(door, Color("#26343a"))
+		draw_circle(door.position + door.size * Vector2(0.2, 0.5), 6, Color("#8da2a6"))
+		draw_rect(Rect2(rect.position + rect.size * Vector2(0.43, 0.62), Vector2(78, 24)), Color("#151b20"))
+	elif direction == "right":
+		var monitor := Rect2(rect.position + rect.size * Vector2(0.17, 0.22), rect.size * Vector2(0.42, 0.34))
+		draw_rect(monitor, Color("#12191e"))
+		if not solved_flags.get("power_off", false):
+			draw_rect(monitor.grow(-12), Color("#8ab2bb"))
+			draw_rect(Rect2(monitor.position + Vector2(28, 38), Vector2(monitor.size.x - 56, 24)), Color("#d6dfe0"))
+			draw_rect(Rect2(monitor.position + Vector2(28, 82), Vector2(monitor.size.x - 56, 70)), Color("#ad6166"))
+		var strip := Rect2(rect.position + rect.size * Vector2(0.63, 0.7), rect.size * Vector2(0.22, 0.06))
+		draw_rect(strip, Color("#dad4c5"))
+		for x in range(4):
+			draw_circle(strip.position + Vector2(25 + x * 42, strip.size.y / 2), 7, Color("#393f43"))
+	elif direction == "back":
+		for index in range(8):
+			var p := rect.position + rect.size * Vector2(0.1 + fmod(index * 0.17, 0.75), 0.64 + fmod(index * 0.07, 0.18))
+			draw_colored_polygon(PackedVector2Array([p, p + Vector2(35, -12), p + Vector2(50, 24), p + Vector2(8, 32)]), Color("#625c55"))
+		var note := Rect2(rect.position + rect.size * Vector2(0.54, 0.43), rect.size * Vector2(0.27, 0.2))
+		draw_rect(note, Color("#b0a68f"))
+		for y in range(4):
+			draw_line(note.position + Vector2(18, 28 + y * 24), note.end - Vector2(18, note.size.y - 28 - y * 24), Color("#4d5e66"), 2)
+	else:
+		if solved_flags.get("power_off", false):
+			for index in range(9):
+				var p := rect.position + rect.size * Vector2(0.13 + fmod(index * 0.19, 0.56), 0.13 + fmod(index * 0.11, 0.28))
+				draw_circle(p, 4, Color("#d7df9c"))
+		var pot := rect.position + rect.size * Vector2(0.77, 0.67)
+		draw_colored_polygon(PackedVector2Array([pot + Vector2(-35, -20), pot + Vector2(35, -20), pot + Vector2(24, 45), pot + Vector2(-24, 45)]), Color("#735243"))
+		draw_line(pot + Vector2(0, -18), pot + Vector2(0, -72), Color("#56674f"), 6)
+		if solved_flags.get("plant_watered", false):
+			draw_arc(pot + Vector2(-14, -66), 18, -PI * 0.2, PI * 0.8, 14, Color("#8eaa75"), 7)
+
+
+func _draw_truth(rect: Rect2, direction: String) -> void:
+	_draw_background(rect, Color("#4b4038"))
+	draw_rect(rect, Color(0.16, 0.11, 0.08, 0.22))
+	if direction == "front":
+		var mirror := Rect2(rect.position + rect.size * Vector2(0.35, 0.08), rect.size * Vector2(0.3, 0.65))
+		draw_rect(mirror.grow(14), Color("#241d1a"))
+		draw_rect(mirror, Color("#7b8583"))
+		draw_circle(mirror.position + mirror.size * Vector2(0.5, 0.23), 35, Color(0.85, 0.78, 0.66, 0.48))
+		draw_colored_polygon(PackedVector2Array([mirror.position + mirror.size * Vector2(0.38, 0.34), mirror.position + mirror.size * Vector2(0.62, 0.34), mirror.position + mirror.size * Vector2(0.72, 0.85), mirror.position + mirror.size * Vector2(0.28, 0.85)]), Color(0.87, 0.84, 0.76, 0.35))
+	elif direction == "right":
+		for index in range(3):
+			var record := Rect2(rect.position + rect.size * Vector2(0.17 + index * 0.23, 0.43), rect.size * Vector2(0.18, 0.23))
+			draw_rect(record, [Color("#bca883"), Color("#9b745f"), Color("#303b42")][index])
+	elif direction == "back":
+		var door := Rect2(rect.position + rect.size * Vector2(0.35, 0.08), rect.size * Vector2(0.3, 0.65))
+		draw_rect(door, Color("#2d251f"))
+		if solved_flags.get("heart_key_made", false):
+			for width in [28.0, 18.0, 8.0]:
+				draw_rect(door.grow(width), Color(0.92, 0.72, 0.32, 0.08), false, 4)
+		draw_circle(door.position + door.size * Vector2(0.82, 0.53), 8, GOLD)
+	else:
+		var counter := Rect2(rect.position + rect.size * Vector2(0.13, 0.52), rect.size * Vector2(0.72, 0.21))
+		draw_rect(counter, Color("#4b3429"))
+		for index in range(3):
+			_draw_bottle(counter.position + Vector2(160 + index * 150, 5), 0.55, Color(0.32, 0.28, 0.25, 0.55))
 
 
 func _draw_bottle(position: Vector2, scale_value: float, color: Color) -> void:
