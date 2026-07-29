@@ -21,8 +21,6 @@ var phone_input := ""
 var room_art: Control
 var hotspot_layer: Control
 var inventory_list: VBoxContainer
-var title_label: Label
-var subtitle_label: Label
 var status_label: Label
 var left_button: Button
 var right_button: Button
@@ -50,72 +48,33 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	var backdrop := ColorRect.new()
-	backdrop.color = Color("#0e0c0b")
+	backdrop.color = Color("#050505")
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(backdrop)
 
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 28)
-	margin.add_theme_constant_override("margin_right", 28)
-	margin.add_theme_constant_override("margin_top", 22)
-	margin.add_theme_constant_override("margin_bottom", 22)
-	add_child(margin)
-
-	var page := VBoxContainer.new()
-	page.add_theme_constant_override("separation", 12)
-	margin.add_child(page)
-
-	var header := HBoxContainer.new()
-	header.custom_minimum_size.y = 68
-	page.add_child(header)
-
-	var title_box := VBoxContainer.new()
-	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(title_box)
-	title_label = Label.new()
-	title_label.text = "마음 약방"
-	title_label.add_theme_font_size_override("font_size", 28)
-	title_label.add_theme_color_override("font_color", COLOR_PAPER)
-	title_box.add_child(title_label)
-	subtitle_label = Label.new()
-	subtitle_label.text = "문이 없는 약방"
-	subtitle_label.add_theme_font_size_override("font_size", 15)
-	subtitle_label.add_theme_color_override("font_color", COLOR_MUTED)
-	title_box.add_child(subtitle_label)
-
-	var hint_button := _make_button("힌트")
-	hint_button.pressed.connect(_show_hint)
-	header.add_child(hint_button)
-	var reset_button := _make_button("처음부터")
-	reset_button.pressed.connect(_confirm_reset)
-	header.add_child(reset_button)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.offset_top = 14
+	center.offset_bottom = -14
+	add_child(center)
 
 	var body := HBoxContainer.new()
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 14)
-	page.add_child(body)
-
-	var game_shell := PanelContainer.new()
-	game_shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	game_shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	game_shell.add_theme_stylebox_override("panel", _panel_style(COLOR_PANEL, COLOR_GOLD, 2))
-	body.add_child(game_shell)
-
-	var game_margin := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		game_margin.add_theme_constant_override("margin_" + side, 10)
-	game_shell.add_child(game_margin)
+	body.custom_minimum_size = Vector2(1060, 640)
+	body.add_theme_constant_override("separation", 20)
+	center.add_child(body)
 
 	var aspect := AspectRatioContainer.new()
 	aspect.ratio = 4.0 / 3.0
 	aspect.stretch_mode = AspectRatioContainer.STRETCH_FIT
 	aspect.alignment_horizontal = AspectRatioContainer.ALIGNMENT_CENTER
 	aspect.alignment_vertical = AspectRatioContainer.ALIGNMENT_CENTER
-	game_margin.add_child(aspect)
+	aspect.custom_minimum_size = Vector2(850, 638)
+	aspect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	aspect.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_child(aspect)
 
 	var scene_root := Control.new()
-	scene_root.custom_minimum_size = Vector2(800, 600)
+	scene_root.custom_minimum_size = Vector2(850, 638)
 	aspect.add_child(scene_root)
 
 	room_art = RoomArt.new()
@@ -128,62 +87,73 @@ func _build_ui() -> void:
 	scene_root.add_child(hotspot_layer)
 
 	left_button = _make_arrow_button("‹", "왼쪽 방향")
-	left_button.anchor_left = 0.015
+	left_button.anchor_left = 0.0
 	left_button.anchor_top = 0.44
-	left_button.anchor_right = 0.09
+	left_button.anchor_right = 0.07
 	left_button.anchor_bottom = 0.59
 	left_button.pressed.connect(_move_left)
 	scene_root.add_child(left_button)
 
 	right_button = _make_arrow_button("›", "오른쪽 방향")
-	right_button.anchor_left = 0.91
+	right_button.anchor_left = 0.93
 	right_button.anchor_top = 0.44
-	right_button.anchor_right = 0.985
+	right_button.anchor_right = 1.0
 	right_button.anchor_bottom = 0.59
 	right_button.pressed.connect(_move_right)
 	scene_root.add_child(right_button)
 
-	var inventory_panel := PanelContainer.new()
-	inventory_panel.custom_minimum_size.x = 238
-	inventory_panel.add_theme_stylebox_override("panel", _panel_style(COLOR_PANEL, Color("#796243"), 2))
-	body.add_child(inventory_panel)
-
 	var inventory_margin := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		inventory_margin.add_theme_constant_override("margin_" + side, 14)
-	inventory_panel.add_child(inventory_margin)
+	inventory_margin.custom_minimum_size.x = 76
+	inventory_margin.add_theme_constant_override("margin_left", 4)
+	inventory_margin.add_theme_constant_override("margin_right", 4)
+	inventory_margin.add_theme_constant_override("margin_top", 22)
+	inventory_margin.add_theme_constant_override("margin_bottom", 22)
+	body.add_child(inventory_margin)
 
 	var inventory_column := VBoxContainer.new()
-	inventory_column.add_theme_constant_override("separation", 9)
+	inventory_column.add_theme_constant_override("separation", 7)
 	inventory_margin.add_child(inventory_column)
-	var inventory_title := Label.new()
-	inventory_title.text = "소지품"
-	inventory_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	inventory_title.add_theme_font_size_override("font_size", 21)
-	inventory_title.add_theme_color_override("font_color", COLOR_PAPER)
-	inventory_column.add_child(inventory_title)
-	var divider := HSeparator.new()
-	inventory_column.add_child(divider)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	inventory_column.add_child(scroll)
 	inventory_list = VBoxContainer.new()
 	inventory_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inventory_list.add_theme_constant_override("separation", 8)
+	inventory_list.add_theme_constant_override("separation", 7)
 	scroll.add_child(inventory_list)
-	combine_button = _make_button("아이템 조합")
+	combine_button = _make_inventory_button("＋", "아이템 조합")
 	combine_button.pressed.connect(_combine_items)
 	inventory_column.add_child(combine_button)
 
+	var settings_button := Button.new()
+	settings_button.text = "⚙"
+	settings_button.tooltip_text = "설정"
+	settings_button.accessibility_name = "설정"
+	settings_button.position = Vector2(18, 16)
+	settings_button.size = Vector2(46, 46)
+	settings_button.z_index = 20
+	settings_button.add_theme_font_size_override("font_size", 24)
+	settings_button.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
+	settings_button.add_theme_stylebox_override("normal", _transparent_style())
+	settings_button.add_theme_stylebox_override("hover", _soft_button_style(Color(1, 1, 1, 0.12)))
+	settings_button.add_theme_stylebox_override("pressed", _soft_button_style(Color(1, 1, 1, 0.2)))
+	settings_button.pressed.connect(_open_settings)
+	add_child(settings_button)
+
 	status_label = Label.new()
-	status_label.custom_minimum_size.y = 44
+	status_label.anchor_left = 0.24
+	status_label.anchor_top = 0.915
+	status_label.anchor_right = 0.76
+	status_label.anchor_bottom = 0.975
 	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status_label.add_theme_font_size_override("font_size", 17)
-	status_label.add_theme_color_override("font_color", COLOR_PAPER)
-	page.add_child(status_label)
+	status_label.add_theme_font_size_override("font_size", 16)
+	status_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.82))
+	status_label.add_theme_stylebox_override("normal", _soft_button_style(Color(0, 0, 0, 0.48)))
+	status_label.z_index = 15
+	add_child(status_label)
 
 	_build_modal()
 
@@ -200,8 +170,8 @@ func _build_modal() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	modal_layer.add_child(center)
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(580, 440)
-	card.add_theme_stylebox_override("panel", _panel_style(Color("#d2bf97"), COLOR_GOLD, 3))
+	card.custom_minimum_size = Vector2(540, 410)
+	card.add_theme_stylebox_override("panel", _panel_style(Color("#ded2b9"), Color("#8f826c"), 1))
 	center.add_child(card)
 	var card_margin := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
@@ -212,7 +182,7 @@ func _build_modal() -> void:
 	card_margin.add_child(column)
 	modal_title = Label.new()
 	modal_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	modal_title.add_theme_font_size_override("font_size", 28)
+	modal_title.add_theme_font_size_override("font_size", 24)
 	modal_title.add_theme_color_override("font_color", COLOR_INK)
 	column.add_child(modal_title)
 	modal_body = RichTextLabel.new()
@@ -235,8 +205,6 @@ func _render() -> void:
 	if current_place == "childhood":
 		scene_id = "childhood_" + DIRECTIONS[direction_index]
 	room_art.set_scene(scene_id, flags)
-	title_label.text = "마음 약방" if current_place == "pharmacy" else "거대한 두려움의 방"
-	subtitle_label.text = "문이 없는 약방" if current_place == "pharmacy" else _direction_name()
 	left_button.visible = current_place == "childhood"
 	right_button.visible = current_place == "childhood"
 	_build_hotspots()
@@ -305,20 +273,19 @@ func _add_hotspot(label_text: String, normalized_rect: Rect2, callback: Callable
 func _refresh_inventory() -> void:
 	for child in inventory_list.get_children():
 		child.queue_free()
-	if inventory.is_empty():
-		var empty := Label.new()
-		empty.text = "─\n아직 아무것도 없다."
-		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.add_theme_color_override("font_color", COLOR_MUTED)
-		inventory_list.add_child(empty)
-	else:
-		for item in inventory:
-			var item_button := _make_button("◇  " + _item_name(item))
+	var slot_count := maxi(6, inventory.size())
+	for index in range(slot_count):
+		if index < inventory.size():
+			var item := inventory[index]
+			var item_button := _make_inventory_button(_item_symbol(item), _item_name(item))
 			item_button.toggle_mode = true
 			item_button.button_pressed = item == selected_item
 			item_button.pressed.connect(_select_item.bind(item))
 			inventory_list.add_child(item_button)
+		else:
+			var empty_slot := _make_inventory_button("", "빈 소지품 칸")
+			empty_slot.disabled = true
+			inventory_list.add_child(empty_slot)
 	combine_button.disabled = inventory.size() < 2
 
 
@@ -545,6 +512,17 @@ func _show_hint() -> void:
 	_show_modal("힌트", "[center]" + hint + "[/center]", [])
 
 
+func _open_settings() -> void:
+	_show_modal(
+		"설정",
+		"[center]게임 진행은 자동으로 저장됩니다.[/center]",
+		[
+			{"label": "힌트 보기", "callback": _show_hint},
+			{"label": "처음부터", "callback": _confirm_reset}
+		]
+	)
+
+
 func _confirm_reset() -> void:
 	_show_modal(
 		"처음부터 시작할까요?",
@@ -625,6 +603,21 @@ func _item_name(item: String) -> String:
 	}.get(item, item)
 
 
+func _item_symbol(item: String) -> String:
+	return {
+		"torn_bear": "곰",
+		"needle": "침",
+		"thread": "실",
+		"repaired_bear": "곰",
+		"block_set": "■",
+		"storybook_page_1": "頁",
+		"storybook_page_2": "頁",
+		"completed_storybook": "冊",
+		"courage": "◇",
+		"door_key": "⚿"
+	}.get(item, "·")
+
+
 func _set_status(message: String) -> void:
 	if status_label != null:
 		status_label.text = message
@@ -645,13 +638,64 @@ func _make_button(label_text: String) -> Button:
 
 
 func _make_arrow_button(glyph: String, accessible_name: String) -> Button:
-	var button := _make_button(glyph)
+	var button := Button.new()
+	button.text = glyph
 	button.accessibility_name = accessible_name
 	button.tooltip_text = accessible_name
 	button.custom_minimum_size = Vector2.ZERO
-	button.add_theme_font_size_override("font_size", 48)
-	button.modulate = Color(1, 1, 1, 0.82)
+	button.add_theme_font_size_override("font_size", 36)
+	button.add_theme_color_override("font_color", Color(0.03, 0.03, 0.03, 0.78))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_stylebox_override("normal", _transparent_style())
+	button.add_theme_stylebox_override("hover", _soft_button_style(Color(0, 0, 0, 0.34)))
+	button.add_theme_stylebox_override("pressed", _soft_button_style(Color(0, 0, 0, 0.48)))
+	button.add_theme_stylebox_override("focus", _soft_button_style(Color(1, 1, 1, 0.12)))
 	return button
+
+
+func _make_inventory_button(glyph: String, accessible_name: String) -> Button:
+	var button := Button.new()
+	button.text = glyph
+	button.tooltip_text = accessible_name
+	button.accessibility_name = accessible_name
+	button.custom_minimum_size = Vector2(62, 62)
+	button.add_theme_font_size_override("font_size", 20)
+	button.add_theme_color_override("font_color", Color("#3b332b"))
+	button.add_theme_color_override("font_hover_color", Color("#1d1916"))
+	button.add_theme_stylebox_override("normal", _inventory_style(Color("#d7c9a9"), Color("#f0e8d4"), 2))
+	button.add_theme_stylebox_override("hover", _inventory_style(Color("#eadfc3"), Color.WHITE, 3))
+	button.add_theme_stylebox_override("pressed", _inventory_style(Color("#c6b58d"), Color("#fff8df"), 3))
+	button.add_theme_stylebox_override("focus", _inventory_style(Color("#d7c9a9"), Color.WHITE, 3))
+	button.add_theme_stylebox_override("disabled", _inventory_style(Color("#9f947d"), Color("#c8bea7"), 2))
+	return button
+
+
+func _inventory_style(color: Color, border: Color, width: int) -> StyleBoxFlat:
+	var style := _panel_style(color, border, width)
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.shadow_color = Color(0, 0, 0, 0.48)
+	style.shadow_size = 7
+	return style
+
+
+func _transparent_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color.TRANSPARENT
+	style.border_color = Color.TRANSPARENT
+	return style
+
+
+func _soft_button_style(color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.corner_radius_top_left = 18
+	style.corner_radius_top_right = 18
+	style.corner_radius_bottom_left = 18
+	style.corner_radius_bottom_right = 18
+	return style
 
 
 func _panel_style(color: Color, border: Color, width: int) -> StyleBoxFlat:
