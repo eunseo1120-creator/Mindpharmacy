@@ -4,7 +4,7 @@ Rusty Lake 계열의 정적 2D 포인트앤클릭 문법을 참고한 멀티플�
 
 > 참고 대상의 게임 문법만 연구하며, Rusty Lake의 그림·캐릭터·아이콘·음원·문구·고유 UI는 복제하지 않는다.
 
-![마음 약방 Godot 프로토타입](docs/prototype-preview.png)
+![마음 약방 Godot 프로토타입](docs/prototype-preview.webp)
 
 ## 목표 플랫폼
 
