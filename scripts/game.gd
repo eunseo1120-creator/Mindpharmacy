@@ -18,6 +18,7 @@ var inventory: Array[String] = []
 var selected_item := ""
 var flags: Dictionary = {}
 var phone_input := ""
+var shoe_input := ""
 var developer_mode := false
 
 var room_art: Control
@@ -29,6 +30,7 @@ var right_button: Button
 var combine_button: Button
 var modal_layer: ColorRect
 var modal_title: Label
+var modal_image: TextureRect
 var modal_body: RichTextLabel
 var modal_actions: VBoxContainer
 
@@ -177,7 +179,7 @@ func _build_modal() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	modal_layer.add_child(center)
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(540, 410)
+	card.custom_minimum_size = Vector2(620, 620)
 	card.add_theme_stylebox_override("panel", _panel_style(Color("#ded2b9"), Color("#8f826c"), 1))
 	center.add_child(card)
 	var card_margin := MarginContainer.new()
@@ -192,6 +194,12 @@ func _build_modal() -> void:
 	modal_title.add_theme_font_size_override("font_size", 24)
 	modal_title.add_theme_color_override("font_color", COLOR_INK)
 	column.add_child(modal_title)
+	modal_image = TextureRect.new()
+	modal_image.custom_minimum_size = Vector2(520, 250)
+	modal_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	modal_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	modal_image.visible = false
+	column.add_child(modal_image)
 	modal_body = RichTextLabel.new()
 	modal_body.bbcode_enabled = true
 	modal_body.fit_content = false
@@ -240,22 +248,25 @@ func _build_hotspots() -> void:
 func _build_childhood_hotspots() -> void:
 	match DIRECTIONS[direction_index]:
 		"front":
-			_add_hotspot("구형 전화기", Rect2(0.31, 0.39, 0.18, 0.2), _open_phone)
+			_add_hotspot("구형 전화기", Rect2(0.29, 0.48, 0.1, 0.12), _open_phone)
 		"right":
-			if not flags.get("bear_collected", false):
-				_add_hotspot("뜯어진 곰인형", Rect2(0.67, 0.67, 0.16, 0.2), _collect_bear)
+			if not flags.get("bear_repaired", false):
+				_add_hotspot("뜯어진 곰인형", Rect2(0.43, 0.69, 0.19, 0.22), _inspect_torn_bear)
 			if not flags.get("blocks_collected", false):
-				_add_hotspot("색깔 블록", Rect2(0.62, 0.76, 0.16, 0.16), _collect_blocks)
-			_add_hotspot("망가진 기차", Rect2(0.81, 0.74, 0.18, 0.16), _repair_train)
+				_add_hotspot("색깔 블록", Rect2(0.61, 0.84, 0.24, 0.13), _collect_blocks)
+			_add_hotspot("장난감 기차 레일", Rect2(0.62, 0.7, 0.34, 0.21), _place_train_on_rail)
+			_add_hotspot("기차 그림 액자", Rect2(0.48, 0.1, 0.19, 0.23), _inspect_train_photo)
+			_add_hotspot("텔레비전", Rect2(0.12, 0.25, 0.33, 0.32), _inspect_tv)
+			_add_hotspot("TV 아래 서랍", Rect2(0.06, 0.57, 0.44, 0.2), _inspect_tv_drawer)
 		"back":
-			_add_hotspot("닫힌 문", Rect2(0.39, 0.12, 0.23, 0.62), _use_door)
-			if not flags.get("needle_collected", false):
-				_add_hotspot("서랍", Rect2(0.12, 0.49, 0.28, 0.25), _collect_needle)
-			if not flags.get("thread_collected", false):
-				_add_hotspot("올이 풀린 옷", Rect2(0.69, 0.27, 0.18, 0.34), _collect_thread)
+			_add_hotspot("닫힌 문", Rect2(0.37, 0.14, 0.25, 0.7), _use_door)
+			_add_hotspot("서랍장", Rect2(0.04, 0.53, 0.29, 0.32), _inspect_dresser)
+			_add_hotspot("옷장", Rect2(0.66, 0.18, 0.32, 0.67), _inspect_wardrobe)
 		"left":
-			_add_hotspot("책꽂이", Rect2(0.02, 0.43, 0.26, 0.29), _inspect_bookshelf)
-			_add_hotspot("소파 밑", Rect2(0.27, 0.5, 0.45, 0.25), _place_bear)
+			_add_hotspot("침대", Rect2(0.43, 0.38, 0.35, 0.43), _place_bear)
+			_add_hotspot("신발장", Rect2(0.76, 0.48, 0.22, 0.3), _inspect_shoe_cabinet)
+			_add_hotspot("소파 쿠션", Rect2(0.02, 0.4, 0.43, 0.35), _inspect_sofa)
+			_add_hotspot("멈춘 시계", Rect2(0.17, 0.15, 0.14, 0.18), _inspect_clock)
 
 
 func _build_school_hotspots() -> void:
@@ -427,81 +438,386 @@ func _move_right() -> void:
 	_render()
 
 
-func _collect_bear() -> void:
-	_add_item("torn_bear")
-	flags["bear_collected"] = true
-	_set_status("뜯어진 곰인형을 주웠다.")
-	_render()
+func _inspect_dresser() -> void:
+	var actions: Array = []
+	var image := "res://assets/closeups/childhood/dresser-open.png" if flags.get("dresser_open", false) else "res://assets/closeups/childhood/dresser-closed.png"
+	if not flags.get("dresser_open", false):
+		actions.append({"label": "서랍 열기", "callback": _open_dresser})
+	elif not flags.get("needle_collected", false):
+		actions.append({"label": "바늘 획득", "callback": _collect_needle})
+	_show_modal("낡은 서랍장", "안쪽에서 작은 금속성 빛이 난다.", actions, image)
 
 
-func _collect_blocks() -> void:
-	_add_item("block_set")
-	flags["blocks_collected"] = true
-	_set_status("색깔 블록 세 개를 주웠다.")
-	_render()
+func _open_dresser() -> void:
+	flags["dresser_open"] = true
+	_show_modal(
+		"열린 서랍",
+		"실밥과 단추 사이에 바늘 하나가 놓여 있다.",
+		[{"label": "바늘 획득", "callback": _collect_needle}],
+		"res://assets/closeups/childhood/dresser-open.png"
+	)
+	_save()
 
 
 func _collect_needle() -> void:
 	_add_item("needle")
 	flags["needle_collected"] = true
-	_set_status("서랍에서 작은 바늘을 찾았다.")
+	_close_modal()
+	_set_status("서랍에서 작은 바늘을 얻었다.")
 	_render()
+
+
+func _inspect_wardrobe() -> void:
+	var actions: Array = []
+	var image := "res://assets/closeups/childhood/wardrobe-open.png" if flags.get("wardrobe_open", false) else "res://assets/closeups/childhood/wardrobe-closed.png"
+	if not flags.get("wardrobe_open", false):
+		actions.append({"label": "옷장 열기", "callback": _open_wardrobe})
+	elif not flags.get("thread_collected", false):
+		actions.append({"label": "풀린 실 획득", "callback": _collect_thread})
+	_show_modal("나무 옷장", "문틈으로 오래된 니트가 보인다.", actions, image)
+
+
+func _open_wardrobe() -> void:
+	flags["wardrobe_open"] = true
+	_show_modal(
+		"열린 옷장",
+		"옷걸이에 걸린 니트 한쪽에서 실이 길게 풀려 있다.",
+		[{"label": "풀린 실 획득", "callback": _collect_thread}],
+		"res://assets/closeups/childhood/wardrobe-open.png"
+	)
+	_save()
 
 
 func _collect_thread() -> void:
 	_add_item("thread")
 	flags["thread_collected"] = true
-	_set_status("옷에서 길게 풀린 실을 얻었다.")
+	_close_modal()
+	_set_status("올이 풀린 니트에서 실을 얻었다.")
 	_render()
 
 
-func _repair_train() -> void:
-	if not inventory.has("block_set"):
-		_set_status("기차의 빈자리에 맞는 색깔 블록이 필요하다.")
+func _inspect_torn_bear() -> void:
+	if not flags.get("bear_collected", false):
+		_add_item("torn_bear")
+		flags["bear_collected"] = true
+	if selected_item == "sewing_kit" and inventory.has("torn_bear"):
+		_sew_bear()
 		return
-	_remove_item("block_set")
-	_add_item("storybook_page_2")
-	flags["train_repaired"] = true
-	_set_status("사진의 색 순서대로 끼우자 기차가 움직이며 종이를 밀어냈다.")
-	_render()
-
-
-func _inspect_bookshelf() -> void:
-	if flags.get("diary_found", false):
-		_set_status("정리된 책들 사이의 빈자리가 보인다.")
-		return
-	flags["diary_found"] = true
 	_show_modal(
-		"그림일기",
-		"문틀에 남은 키 표시의 높이와 색에 맞춰 책을 정리했다.\n\n[italic]“큰 소리가 날 때면 흰 곰을 안고 숫자를 거꾸로 세었다.”[/italic]",
-		[]
+		"뜯어진 곰인형",
+		"배 쪽의 천이 벌어져 솜이 보인다. 바느질 도구가 필요하다.",
+		[],
+		"res://assets/closeups/childhood/torn-bear-closeup.png"
 	)
-	_set_status("그림일기를 찾았다. 곰인형과 침대 밑이 그려져 있다.")
+	_set_status("곰인형을 챙겼다. 바느질 세트를 선택해 다시 눌러 보세요.")
 	_save()
 
 
-func _place_bear() -> void:
-	if not flags.get("diary_found", false):
-		_set_status("침대 밑에는 희미한 먼지 자국만 남아 있다.")
-		return
-	if not inventory.has("repaired_bear"):
-		_set_status("그림일기 속에는 멀쩡한 곰인형이 놓여 있다.")
-		return
-	_remove_item("repaired_bear")
-	_add_item("storybook_page_1")
-	flags["storybook_page_1_found"] = true
-	_set_status("곰인형을 같은 자리에 두자 동화책 한 장이 떨어졌다.")
+func _sew_bear() -> void:
+	_remove_item("sewing_kit")
+	_remove_item("torn_bear")
+	_add_item("repaired_bear")
+	flags["bear_repaired"] = true
+	selected_item = ""
+	_show_modal(
+		"꼬매진 곰인형",
+		"열 번 남짓한 바늘땀이 상처 난 천을 단단히 붙잡고 있다.",
+		[],
+		"res://assets/closeups/childhood/stitched-bear-closeup.png"
+	)
+	_set_status("꼬매진 곰인형을 얻었다.")
 	_render()
 
 
+func _collect_blocks() -> void:
+	_add_item("block_red")
+	_add_item("block_yellow")
+	_add_item("block_blue")
+	flags["blocks_collected"] = true
+	_set_status("빨간색, 노란색, 파란색 기차 블록을 얻었다.")
+	_render()
+
+
+func _inspect_train_photo() -> void:
+	flags["train_order_seen"] = true
+	_show_modal(
+		"액자 속 장난감 기차",
+		"객차의 순서는 [color=#b79642]노란색[/color] → [color=#63758a]파란색[/color] → [color=#8f4e43]빨간색[/color]이다.",
+		[],
+		"res://assets/closeups/childhood/train-order-frame.png"
+	)
+	_set_status("기차 블록의 순서를 기억했다: 노랑, 파랑, 빨강.")
+	_save()
+
+
+func _place_train_on_rail() -> void:
+	if flags.get("train_repaired", false):
+		_set_status("기차가 지나간 레일 아래에는 아무것도 남지 않았다.")
+		return
+	if selected_item != "repaired_train":
+		_set_status("레일 위를 달릴 수 있는 수리된 장난감 기차가 필요하다.")
+		return
+	_remove_item("repaired_train")
+	_add_item("storybook_page_2")
+	flags["train_repaired"] = true
+	selected_item = ""
+	_show_modal(
+		"레일 아래의 종이",
+		"기차가 움직이자 레일과 바퀴 사이에 눌려 있던 동화책 페이지 조각이 드러났다.",
+		[],
+		"res://assets/closeups/childhood/storybook-page-piece.png"
+	)
+	_set_status("동화책 페이지 조각을 얻었다.")
+	_render()
+
+
+func _place_bear() -> void:
+	if flags.get("storybook_page_1_found", false):
+		_show_modal("침대 위의 동화책", "곰인형이 지키고 있던 낡은 동화책이다.", [], "res://assets/closeups/childhood/bed-storybook.png")
+		return
+	if selected_item != "repaired_bear":
+		_set_status("침대 밑에는 곰인형 하나가 들어갈 만한 빈자리가 있다.")
+		return
+	_remove_item("repaired_bear")
+	selected_item = ""
+	flags["bear_placed_under_bed"] = true
+	_show_modal(
+		"침대 밑의 곰인형",
+		"꼬매진 곰인형을 침대 밑에 놓자 매트리스 위에서 종이 넘기는 소리가 난다.",
+		[{"label": "침대 위 살펴보기", "callback": _reveal_storybook}],
+		"res://assets/closeups/childhood/bed-bear-under.png"
+	)
+	_save()
+
+
+func _reveal_storybook() -> void:
+	_add_item("storybook_page_1")
+	flags["storybook_page_1_found"] = true
+	_show_modal(
+		"침대 위의 동화책",
+		"마지막 부분이 뜯겨 나간 낡은 동화책을 얻었다.",
+		[],
+		"res://assets/closeups/childhood/bed-storybook.png"
+	)
+	_set_status("페이지가 빠진 동화책을 얻었다.")
+	_render()
+
+
+func _inspect_shoe_cabinet() -> void:
+	if flags.get("shoe_cabinet_unlocked", false):
+		_show_modal(
+			"열린 신발장",
+			"양쪽 문이 모두 열려 있다. 왼쪽 칸에 접힌 쪽지가 보인다.",
+			[] if flags.get("mother_note_collected", false) else [{"label": "엄마의 쪽지 확인", "callback": _reveal_mother_note}],
+			"res://assets/closeups/childhood/shoe-cabinet-open.png"
+		)
+		return
+	_show_modal(
+		"잠긴 신발장",
+		"오른쪽 문은 열려 있고 낡은 구두 한 켤레가 있다. 왼쪽 문에는 세 자리 전자 잠금장치가 달려 있다.",
+		[
+			{"label": "낡은 구두 살펴보기", "callback": _inspect_old_shoe},
+			{"label": "비밀번호 입력", "callback": _show_shoe_keypad}
+		],
+		"res://assets/closeups/childhood/shoe-cabinet-locked.png"
+	)
+
+
+func _inspect_old_shoe() -> void:
+	flags["shoe_size_seen"] = true
+	_show_modal(
+		"낡은 구두 안쪽",
+		"닳은 안감에 숫자가 선명하게 남아 있다.\n\n[center][font_size=34]240[/font_size][/center]",
+		[{"label": "신발장으로 돌아가기", "callback": _inspect_shoe_cabinet}],
+		"res://assets/closeups/childhood/old-shoe-240.png"
+	)
+	_set_status("낡은 구두의 발 사이즈 240을 확인했다.")
+	_save()
+
+
+func _show_shoe_keypad() -> void:
+	shoe_input = ""
+	_show_modal("신발장 비밀번호", "[center][font_size=34]— — —[/font_size][/center]", [])
+	for digit in range(10):
+		var button := _make_button(str(digit))
+		button.pressed.connect(_shoe_digit.bind(str(digit)))
+		modal_actions.add_child(button)
+
+
+func _shoe_digit(digit: String) -> void:
+	if shoe_input.length() >= 3:
+		shoe_input = ""
+	shoe_input += digit
+	modal_body.text = "[center][font_size=34]" + " ".join(shoe_input.split("")) + "[/font_size][/center]"
+	if shoe_input.length() != 3:
+		return
+	if shoe_input == "240" and flags.get("shoe_size_seen", false):
+		flags["shoe_cabinet_unlocked"] = true
+		_show_modal(
+			"양쪽 문이 열린다",
+			"잠금장치가 풀렸다. 왼쪽 칸에 접힌 쪽지가 있다.",
+			[{"label": "엄마의 쪽지 확인", "callback": _reveal_mother_note}],
+			"res://assets/closeups/childhood/shoe-cabinet-open.png"
+		)
+		_set_status("240을 입력해 신발장을 열었다.")
+		_save()
+	else:
+		_set_status("비밀번호가 맞지 않는다. 오른쪽 구두 안쪽을 다시 살펴보자.")
+
+
+func _reveal_mother_note() -> void:
+	_add_item("mother_note")
+	flags["mother_note_collected"] = true
+	_show_modal(
+		"엄마의 쪽지",
+		"[center]“엄마 나갔다 올게.\nTV는 소리 14로 맞춰서 봐.\n시끄러우면 아빠 화낸다.”[/center]",
+		[],
+		"res://assets/closeups/childhood/mother-note.png"
+	)
+	_set_status("TV 볼륨을 14에 맞추라는 쪽지를 발견했다.")
+	_render()
+
+
+func _inspect_tv_drawer() -> void:
+	var image := "res://assets/closeups/childhood/tv-drawer-open.png" if flags.get("tv_drawer_open", false) else "res://assets/closeups/childhood/tv-drawer-closed.png"
+	var actions: Array = []
+	if not flags.get("tv_drawer_open", false):
+		actions.append({"label": "서랍 열기", "callback": _open_tv_drawer})
+	elif not flags.get("empty_remote_collected", false):
+		actions.append({"label": "리모컨 획득", "callback": _collect_empty_remote})
+	_show_modal("TV 아래 서랍장", "서랍 손잡이에 오래된 손자국이 남아 있다.", actions, image)
+
+
+func _open_tv_drawer() -> void:
+	flags["tv_drawer_open"] = true
+	_show_modal(
+		"열린 TV 서랍",
+		"배터리 덮개가 열린 리모컨이 들어 있다. 건전지는 없다.",
+		[{"label": "리모컨 획득", "callback": _collect_empty_remote}],
+		"res://assets/closeups/childhood/tv-drawer-open.png"
+	)
+	_save()
+
+
+func _collect_empty_remote() -> void:
+	_add_item("empty_remote")
+	flags["empty_remote_collected"] = true
+	_close_modal()
+	_set_status("건전지 없는 리모컨을 얻었다.")
+	_render()
+
+
+func _inspect_sofa() -> void:
+	if flags.get("sofa_cushion_lifted", false):
+		_show_modal("들린 소파 쿠션", "쿠션 밑은 비어 있다.", [], "res://assets/closeups/childhood/sofa-cushion-lifted.png")
+		return
+	_show_modal(
+		"소파 쿠션",
+		"쿠션 한쪽이 미세하게 들떠 있다.",
+		[{"label": "쿠션 들어 올리기", "callback": _lift_sofa_cushion}],
+		"res://assets/closeups/childhood/sofa-cushion.png"
+	)
+
+
+func _lift_sofa_cushion() -> void:
+	flags["sofa_cushion_lifted"] = true
+	_add_item("battery_1")
+	_show_modal(
+		"쿠션 아래",
+		"홈 사이에서 건전지 한 개를 찾았다.",
+		[],
+		"res://assets/closeups/childhood/sofa-cushion-lifted.png"
+	)
+	_set_status("소파 쿠션 밑에서 건전지 한 개를 얻었다.")
+	_render()
+
+
+func _inspect_clock() -> void:
+	if flags.get("clock_turned", false):
+		_show_modal("멈춘 시계의 뒷면", "빈 건전지 칸이 보인다.", [], "res://assets/closeups/childhood/clock-back.png")
+		return
+	_show_modal(
+		"멈춘 벽시계",
+		"초침이 움직이지 않는다. 뒤쪽을 확인할 수 있을 것 같다.",
+		[{"label": "시계 뒤집기", "callback": _turn_clock}],
+		"res://assets/closeups/childhood/clock-front.png"
+	)
+
+
+func _turn_clock() -> void:
+	flags["clock_turned"] = true
+	_add_item("battery_2")
+	_show_modal(
+		"시계 뒷면",
+		"건전지 칸에서 건전지 한 개를 꺼냈다.",
+		[],
+		"res://assets/closeups/childhood/clock-back.png"
+	)
+	_set_status("멈춘 시계에서 건전지 한 개를 얻었다.")
+	_render()
+
+
+func _inspect_tv() -> void:
+	if selected_item != "powered_remote":
+		_set_status("TV는 꺼져 있다. 건전지가 든 리모컨이 필요하다.")
+		_show_modal("꺼진 TV", "검은 화면 아래의 수신등만 희미하게 켜져 있다.", [], "res://assets/closeups/childhood/tv-screen.png")
+		return
+	_show_volume_control()
+
+
+func _show_volume_control() -> void:
+	var volume := int(flags.get("tv_volume", 0))
+	_show_modal(
+		"리모컨 볼륨",
+		"[center]현재 볼륨\n[font_size=40]" + str(volume) + "[/font_size][/center]",
+		[
+			{"label": "볼륨 −", "callback": _change_tv_volume.bind(-1)},
+			{"label": "볼륨 ＋", "callback": _change_tv_volume.bind(1)}
+		],
+		"res://assets/closeups/childhood/remote-volume.png"
+	)
+
+
+func _change_tv_volume(delta: int) -> void:
+	var volume := clampi(int(flags.get("tv_volume", 0)) + delta, 0, 30)
+	flags["tv_volume"] = volume
+	if volume == 14:
+		flags["tv_volume_set"] = true
+		_show_modal(
+			"볼륨 14",
+			"TV 소리가 거의 들리지 않을 만큼 작아진다. 화면에 상담 전화 번호 [b]1366[/b]이 잠시 나타난다.",
+			[],
+			"res://assets/closeups/childhood/tv-volume-14.png"
+		)
+		_set_status("엄마의 쪽지대로 TV 볼륨을 14에 맞췄다. 화면에 1366이 나타났다.")
+	else:
+		_show_volume_control()
+	_save()
+
+
 func _combine_items() -> void:
-	if inventory.has("needle") and inventory.has("thread") and inventory.has("torn_bear"):
+	if inventory.has("needle") and inventory.has("thread"):
 		_remove_item("needle")
 		_remove_item("thread")
-		_remove_item("torn_bear")
-		_add_item("repaired_bear")
-		flags["bear_repaired"] = true
-		_set_status("바늘과 실로 곰인형을 수선했다.")
+		_add_item("sewing_kit")
+		flags["sewing_kit_made"] = true
+		_set_status("바늘과 실을 묶어 바느질 세트를 만들었다.")
+	elif inventory.has("block_yellow") and inventory.has("block_blue") and inventory.has("block_red") and flags.get("train_order_seen", false):
+		_remove_item("block_yellow")
+		_remove_item("block_blue")
+		_remove_item("block_red")
+		_add_item("repaired_train")
+		flags["train_blocks_combined"] = true
+		_show_modal("수리된 장난감 기차", "액자에서 본 순서대로 노랑, 파랑, 빨강 객차를 연결했다.", [], "res://assets/closeups/childhood/repaired-train.png")
+		_set_status("수리된 장난감 기차를 얻었다.")
+	elif inventory.has("empty_remote") and inventory.has("battery_1") and inventory.has("battery_2"):
+		_remove_item("empty_remote")
+		_remove_item("battery_1")
+		_remove_item("battery_2")
+		_add_item("powered_remote")
+		flags["remote_powered"] = true
+		_show_modal("작동하는 리모컨", "건전지 두 개를 넣자 작은 전원등이 켜졌다.", [], "res://assets/closeups/childhood/remote-powered.png")
+		_set_status("건전지가 들어간 리모컨을 얻었다.")
 	elif inventory.has("storybook_page_1") and inventory.has("storybook_page_2"):
 		_remove_item("storybook_page_1")
 		_remove_item("storybook_page_2")
@@ -509,10 +825,10 @@ func _combine_items() -> void:
 		flags["storybook_completed"] = true
 		_show_modal(
 			"점박이 곰과 하얀 곰",
-			"“혼자가 무섭다면 함께해도 괜찮아. 도와달라고 말해도 괜찮아.”\n\n책의 마지막 장 뒤편에 숫자가 적혀 있다.\n\n[center][font_size=34]1 · 3 · 6 · 6[/font_size][/center]",
+			"“혼자가 무섭다면 함께해도 괜찮아. 도와달라고 말해도 괜찮아.”\n\n레일 밑에서 찾은 조각이 마지막 문장을 완성했다.",
 			[]
 		)
-		_set_status("완성된 동화책의 뒷면에서 번호를 찾았다.")
+		_set_status("동화책의 빠진 페이지를 완성했다.")
 	elif inventory.has("torn_shoe") and inventory.has("clear_tape"):
 		_remove_item("torn_shoe")
 		_remove_item("clear_tape")
@@ -555,7 +871,7 @@ func _dial_digit(digit: String) -> void:
 	var display := " ".join(phone_input.split(""))
 	modal_body.text = "[center][font_size=34]" + display + "[/font_size][/center]"
 	if phone_input.length() == 4:
-		if phone_input == "1366" and inventory.has("completed_storybook"):
+		if phone_input == "1366" and inventory.has("completed_storybook") and flags.get("tv_volume_set", false):
 			_add_item("courage")
 			_add_item("door_key")
 			flags["phone_code_entered"] = true
@@ -564,7 +880,7 @@ func _dial_digit(digit: String) -> void:
 			_set_status("전화기 아래 칸이 열렸다. 용기의 눈물과 열쇠를 얻었다.")
 			_render()
 		elif phone_input == "1366":
-			_set_status("번호는 맞지만, 이 번호의 의미를 이해할 단서가 더 필요하다.")
+			_set_status("번호는 맞지만, 동화책과 TV 화면이 가리키는 의미를 더 확인해야 한다.")
 		else:
 			_set_status("연결되지 않는다. 번호를 다시 생각해 보자.")
 
@@ -820,16 +1136,46 @@ func _show_hint() -> void:
 		else:
 			hint = "오른쪽 방향의 편지함을 살펴보세요."
 	elif current_place == "childhood":
-		if not flags.get("bear_repaired", false):
-			hint = "뒤쪽 벽의 서랍과 걸린 옷에서 수선 도구를 찾아보세요."
+		if not flags.get("needle_collected", false):
+			hint = "뒤쪽 서랍장을 열어 바늘을 찾으세요."
+		elif not flags.get("thread_collected", false):
+			hint = "뒤쪽 옷장을 열고 올이 풀린 니트에서 실을 얻으세요."
+		elif not flags.get("sewing_kit_made", false):
+			hint = "바늘과 실을 조합해 바느질 세트를 만드세요."
+		elif not flags.get("bear_collected", false):
+			hint = "오른쪽 바닥의 뜯어진 곰인형을 살펴보세요."
+		elif not flags.get("bear_repaired", false):
+			hint = "바느질 세트를 선택하고 오른쪽 바닥의 곰인형을 누르세요."
 		elif not flags.get("storybook_page_1_found", false):
-			hint = "그림일기의 장면을 왼쪽 소파 밑에서 재현해 보세요."
+			hint = "꼬매진 곰인형을 선택하고 왼쪽 침대를 누르세요."
+		elif not flags.get("blocks_collected", false):
+			hint = "오른쪽 바닥의 빨강, 노랑, 파랑 기차 블록을 주우세요."
+		elif not flags.get("train_order_seen", false):
+			hint = "오른쪽 벽의 기차 그림 액자에서 색 순서를 확인하세요."
+		elif not flags.get("train_blocks_combined", false):
+			hint = "노랑, 파랑, 빨강 블록을 조합해 기차를 수리하세요."
 		elif not flags.get("train_repaired", false):
-			hint = "바닥의 색깔 블록을 장난감 기차에 사용해 보세요."
+			hint = "수리된 기차를 선택하고 오른쪽 바닥의 레일을 누르세요."
 		elif not flags.get("storybook_completed", false):
-			hint = "두 장의 동화책 페이지를 조합해 보세요."
+			hint = "페이지가 빠진 동화책과 레일 밑의 조각을 조합하세요."
+		elif not flags.get("shoe_size_seen", false):
+			hint = "왼쪽 신발장의 열린 오른쪽 칸에서 낡은 구두 안쪽을 확인하세요."
+		elif not flags.get("shoe_cabinet_unlocked", false):
+			hint = "왼쪽 신발장 잠금장치에 구두 크기 240을 입력하세요."
+		elif not flags.get("mother_note_collected", false):
+			hint = "열린 신발장 왼쪽 칸에서 엄마의 쪽지를 읽으세요."
+		elif not flags.get("empty_remote_collected", false):
+			hint = "오른쪽 TV 아래 서랍을 열어 리모컨을 찾으세요."
+		elif not flags.get("sofa_cushion_lifted", false):
+			hint = "왼쪽 소파 쿠션을 들어 첫 번째 건전지를 찾으세요."
+		elif not flags.get("clock_turned", false):
+			hint = "왼쪽 벽의 멈춘 시계를 뒤집어 두 번째 건전지를 찾으세요."
+		elif not flags.get("remote_powered", false):
+			hint = "건전지 없는 리모컨과 건전지 두 개를 조합하세요."
+		elif not flags.get("tv_volume_set", false):
+			hint = "작동하는 리모컨을 선택해 TV 볼륨을 14로 맞추세요."
 		elif not flags.get("courage_obtained", false):
-			hint = "완성된 동화책 뒷면의 번호를 전화기에 입력하세요."
+			hint = "TV에 나타난 1366을 정면의 구형 전화기에 입력하세요."
 		else:
 			hint = "열쇠를 선택한 뒤 뒤쪽의 닫힌 문을 눌러 보세요."
 	elif current_place == "school":
@@ -938,10 +1284,29 @@ func _developer_solve_current() -> void:
 			flags["chapter_returned"] = false
 		"childhood":
 			flags.merge({
+				"dresser_open": true,
+				"needle_collected": true,
+				"wardrobe_open": true,
+				"thread_collected": true,
+				"sewing_kit_made": true,
+				"bear_collected": true,
 				"bear_repaired": true,
 				"storybook_page_1_found": true,
+				"blocks_collected": true,
+				"train_order_seen": true,
+				"train_blocks_combined": true,
 				"train_repaired": true,
 				"storybook_completed": true,
+				"shoe_size_seen": true,
+				"shoe_cabinet_unlocked": true,
+				"mother_note_collected": true,
+				"tv_drawer_open": true,
+				"empty_remote_collected": true,
+				"sofa_cushion_lifted": true,
+				"clock_turned": true,
+				"remote_powered": true,
+				"tv_volume": 14,
+				"tv_volume_set": true,
 				"phone_code_entered": true,
 				"courage_obtained": true
 			}, true)
@@ -995,16 +1360,23 @@ func _reset_game() -> void:
 	inventory.clear()
 	flags.clear()
 	selected_item = ""
+	phone_input = ""
+	shoe_input = ""
 	_close_modal()
 	_set_status("빛나는 편지함을 눌러 보세요.")
 	_render()
 
 
-func _show_modal(heading: String, body: String, actions: Array) -> void:
+func _show_modal(heading: String, body: String, actions: Array, image_path: String = "") -> void:
 	for child in modal_actions.get_children():
 		child.queue_free()
 	modal_title.text = heading
 	modal_body.text = body
+	modal_image.texture = null
+	modal_image.visible = false
+	if not image_path.is_empty() and ResourceLoader.exists(image_path):
+		modal_image.texture = load(image_path) as Texture2D
+		modal_image.visible = modal_image.texture != null
 	for action in actions:
 		var button := _make_button(str(action["label"]))
 		button.pressed.connect(action["callback"])
@@ -1040,7 +1412,7 @@ func _remove_item(item: String) -> void:
 func _direction_name() -> String:
 	var names := {
 		"pharmacy": ["정면 · 조제대", "오른쪽 · 편지함", "뒤쪽 · 약병 진열장", "왼쪽 · 작업 책상"],
-		"childhood": ["정면 · 창가와 긴 책상", "오른쪽 · 텔레비전과 장난감", "뒤쪽 · 닫힌 문과 서랍", "왼쪽 · 소파와 책꽂이"],
+		"childhood": ["정면 · 창가와 긴 책상", "오른쪽 · TV와 장난감 레일", "뒤쪽 · 문, 서랍장과 옷장", "왼쪽 · 침대, 신발장과 소파"],
 		"school": ["정면 · 칠판과 교실 문", "오른쪽 · 낙서 책상", "뒤쪽 · 사물함", "왼쪽 · 출석표와 스피커"],
 		"adult": ["정면 · 현관과 휴대전화", "오른쪽 · 모니터와 멀티탭", "뒤쪽 · 쓰레기 더미와 노트", "왼쪽 · 야광 별과 화분"],
 		"truth": ["정면 · 전신 거울", "오른쪽 · 세 개의 기록", "뒤쪽 · 없었던 문", "왼쪽 · 빈 조제대"]
@@ -1053,11 +1425,20 @@ func _item_name(item: String) -> String:
 		"torn_bear": "뜯어진 곰인형",
 		"needle": "바늘",
 		"thread": "실",
-		"repaired_bear": "수선된 곰인형",
-		"block_set": "색깔 블록",
-		"storybook_page_1": "동화책 1쪽",
-		"storybook_page_2": "동화책 2쪽",
+		"sewing_kit": "바느질 세트",
+		"repaired_bear": "꼬매진 곰인형",
+		"block_red": "빨간 기차 블록",
+		"block_yellow": "노란 기차 블록",
+		"block_blue": "파란 기차 블록",
+		"repaired_train": "수리된 장난감 기차",
+		"storybook_page_1": "페이지가 빠진 동화책",
+		"storybook_page_2": "동화책 페이지 조각",
 		"completed_storybook": "완성된 동화책",
+		"mother_note": "엄마의 쪽지",
+		"empty_remote": "건전지 없는 리모컨",
+		"battery_1": "건전지",
+		"battery_2": "건전지",
+		"powered_remote": "작동하는 리모컨",
 		"courage": "용기의 눈물",
 		"door_key": "닫힌 문의 열쇠"
 		,"clear_tape": "투명 테이프"
@@ -1082,11 +1463,20 @@ func _item_symbol(item: String) -> String:
 		"torn_bear": "곰",
 		"needle": "침",
 		"thread": "실",
+		"sewing_kit": "針",
 		"repaired_bear": "곰",
-		"block_set": "■",
+		"block_red": "R",
+		"block_yellow": "Y",
+		"block_blue": "B",
+		"repaired_train": "車",
 		"storybook_page_1": "頁",
 		"storybook_page_2": "頁",
 		"completed_storybook": "冊",
+		"mother_note": "書",
+		"empty_remote": "遥",
+		"battery_1": "＋",
+		"battery_2": "＋",
+		"powered_remote": "遥",
 		"courage": "◇",
 		"door_key": "⚿"
 		,"clear_tape": "▧"
@@ -1111,11 +1501,20 @@ func _item_texture(item: String) -> Texture2D:
 		"torn_bear": "res://assets/items/childhood/torn-bear.png",
 		"needle": "res://assets/items/childhood/needle.png",
 		"thread": "res://assets/items/childhood/thread.png",
+		"sewing_kit": "res://assets/items/childhood/sewing-kit.png",
 		"repaired_bear": "res://assets/items/childhood/repaired-bear.png",
-		"block_set": "res://assets/items/childhood/blocks.png",
-		"storybook_page_1": "res://assets/items/childhood/storybook-page.png",
+		"block_red": "res://assets/items/childhood/block-red.png",
+		"block_yellow": "res://assets/items/childhood/block-yellow.png",
+		"block_blue": "res://assets/items/childhood/block-blue.png",
+		"repaired_train": "res://assets/items/childhood/repaired-train.png",
+		"storybook_page_1": "res://assets/items/childhood/storybook.png",
 		"storybook_page_2": "res://assets/items/childhood/storybook-page.png",
 		"completed_storybook": "res://assets/items/finale/sketchbook.png",
+		"mother_note": "res://assets/items/childhood/mother-note.png",
+		"empty_remote": "res://assets/items/childhood/remote-empty.png",
+		"battery_1": "res://assets/items/childhood/battery.png",
+		"battery_2": "res://assets/items/childhood/battery.png",
+		"powered_remote": "res://assets/items/childhood/remote-powered.png",
 		"courage": "res://assets/items/finale/emotion-vials.png",
 		"door_key": "res://assets/items/school/school-key.png",
 		"clear_tape": "res://assets/items/school/clear-tape.png",
