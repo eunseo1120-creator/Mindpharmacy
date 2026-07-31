@@ -240,22 +240,22 @@ func _build_hotspots() -> void:
 func _build_childhood_hotspots() -> void:
 	match DIRECTIONS[direction_index]:
 		"front":
-			_add_hotspot("거대한 문", Rect2(0.32, 0.04, 0.36, 0.72), _use_door)
-			_add_hotspot("구형 전화기", Rect2(0.68, 0.48, 0.22, 0.24), _open_phone)
+			_add_hotspot("구형 전화기", Rect2(0.31, 0.39, 0.18, 0.2), _open_phone)
 		"right":
 			if not flags.get("bear_collected", false):
-				_add_hotspot("뜯어진 곰인형", Rect2(0.12, 0.57, 0.22, 0.25), _collect_bear)
+				_add_hotspot("뜯어진 곰인형", Rect2(0.67, 0.67, 0.16, 0.2), _collect_bear)
 			if not flags.get("blocks_collected", false):
-				_add_hotspot("색깔 블록", Rect2(0.4, 0.7, 0.22, 0.18), _collect_blocks)
-			_add_hotspot("망가진 기차", Rect2(0.52, 0.5, 0.3, 0.3), _repair_train)
+				_add_hotspot("색깔 블록", Rect2(0.62, 0.76, 0.16, 0.16), _collect_blocks)
+			_add_hotspot("망가진 기차", Rect2(0.81, 0.74, 0.18, 0.16), _repair_train)
 		"back":
+			_add_hotspot("닫힌 문", Rect2(0.39, 0.12, 0.23, 0.62), _use_door)
 			if not flags.get("needle_collected", false):
-				_add_hotspot("서랍", Rect2(0.08, 0.42, 0.34, 0.33), _collect_needle)
+				_add_hotspot("서랍", Rect2(0.12, 0.49, 0.28, 0.25), _collect_needle)
 			if not flags.get("thread_collected", false):
-				_add_hotspot("올이 풀린 옷", Rect2(0.55, 0.12, 0.34, 0.58), _collect_thread)
+				_add_hotspot("올이 풀린 옷", Rect2(0.69, 0.27, 0.18, 0.34), _collect_thread)
 		"left":
-			_add_hotspot("책꽂이", Rect2(0.04, 0.12, 0.28, 0.6), _inspect_bookshelf)
-			_add_hotspot("침대 밑", Rect2(0.34, 0.54, 0.56, 0.27), _place_bear)
+			_add_hotspot("책꽂이", Rect2(0.02, 0.43, 0.26, 0.29), _inspect_bookshelf)
+			_add_hotspot("소파 밑", Rect2(0.27, 0.5, 0.45, 0.25), _place_bear)
 
 
 func _build_school_hotspots() -> void:
@@ -571,7 +571,7 @@ func _dial_digit(digit: String) -> void:
 
 func _use_door() -> void:
 	if selected_item != "door_key":
-		_set_status("문은 너무 크고 무겁다. 열쇠가 필요하다.")
+		_set_status("닫힌 문에는 작은 열쇠구멍이 있다.")
 		return
 	_remove_item("door_key")
 	flags["childhood_complete"] = true
@@ -579,7 +579,7 @@ func _use_door() -> void:
 	selected_item = ""
 	_show_modal(
 		"문이 열린다",
-		"[center]거대한 문 틈으로 따뜻한 빛이 번진다.\n\n도움을 요청하는 일은 도망치는 것이 아니었다.[/center]",
+		"[center]닫힌 문 틈으로 따뜻한 빛이 번진다.\n\n도움을 요청하는 일은 도망치는 것이 아니었다.[/center]",
 		[{"label": "약방으로 돌아가기", "callback": _return_to_pharmacy}]
 	)
 	_render()
@@ -821,9 +821,9 @@ func _show_hint() -> void:
 			hint = "오른쪽 방향의 편지함을 살펴보세요."
 	elif current_place == "childhood":
 		if not flags.get("bear_repaired", false):
-			hint = "서랍과 옷장에서 곰인형을 수선할 도구를 찾아보세요."
+			hint = "뒤쪽 벽의 서랍과 걸린 옷에서 수선 도구를 찾아보세요."
 		elif not flags.get("storybook_page_1_found", false):
-			hint = "그림일기의 장면을 침대 밑에서 재현해 보세요."
+			hint = "그림일기의 장면을 왼쪽 소파 밑에서 재현해 보세요."
 		elif not flags.get("train_repaired", false):
 			hint = "바닥의 색깔 블록을 장난감 기차에 사용해 보세요."
 		elif not flags.get("storybook_completed", false):
@@ -831,7 +831,7 @@ func _show_hint() -> void:
 		elif not flags.get("courage_obtained", false):
 			hint = "완성된 동화책 뒷면의 번호를 전화기에 입력하세요."
 		else:
-			hint = "열쇠를 선택한 뒤 정면의 거대한 문을 눌러 보세요."
+			hint = "열쇠를 선택한 뒤 뒤쪽의 닫힌 문을 눌러 보세요."
 	elif current_place == "school":
 		if not flags.get("desk_read", false):
 			hint = "낙서 책상에서 반복되는 획을 읽어 보세요."
@@ -1040,7 +1040,7 @@ func _remove_item(item: String) -> void:
 func _direction_name() -> String:
 	var names := {
 		"pharmacy": ["정면 · 조제대", "오른쪽 · 편지함", "뒤쪽 · 약병 진열장", "왼쪽 · 작업 책상"],
-		"childhood": ["정면 · 거대한 문", "오른쪽 · 망가진 장난감", "뒤쪽 · 옷장과 서랍", "왼쪽 · 침대와 책꽂이"],
+		"childhood": ["정면 · 창가와 긴 책상", "오른쪽 · 텔레비전과 장난감", "뒤쪽 · 닫힌 문과 서랍", "왼쪽 · 소파와 책꽂이"],
 		"school": ["정면 · 칠판과 교실 문", "오른쪽 · 낙서 책상", "뒤쪽 · 사물함", "왼쪽 · 출석표와 스피커"],
 		"adult": ["정면 · 현관과 휴대전화", "오른쪽 · 모니터와 멀티탭", "뒤쪽 · 쓰레기 더미와 노트", "왼쪽 · 야광 별과 화분"],
 		"truth": ["정면 · 전신 거울", "오른쪽 · 세 개의 기록", "뒤쪽 · 없었던 문", "왼쪽 · 빈 조제대"]
@@ -1059,7 +1059,7 @@ func _item_name(item: String) -> String:
 		"storybook_page_2": "동화책 2쪽",
 		"completed_storybook": "완성된 동화책",
 		"courage": "용기의 눈물",
-		"door_key": "거대한 문의 열쇠"
+		"door_key": "닫힌 문의 열쇠"
 		,"clear_tape": "투명 테이프"
 		,"torn_shoe": "찢어진 실내화"
 		,"repaired_shoe": "수선된 실내화"

@@ -41,7 +41,7 @@ func _run() -> void:
 	game._inspect_bookshelf()
 	game._select_item("repaired_bear")
 	game._place_bear()
-	_expect(game.inventory.has("storybook_page_1"), "침대 밑에서 첫 페이지를 얻는다")
+	_expect(game.inventory.has("storybook_page_1"), "소파 밑에서 첫 페이지를 얻는다")
 
 	game._repair_train()
 	_expect(game.inventory.has("storybook_page_2"), "기차에서 두 번째 페이지를 얻는다")
@@ -54,10 +54,10 @@ func _run() -> void:
 	_expect(game.inventory.has("courage"), "1366 입력으로 용기를 얻는다")
 	_expect(game.inventory.has("door_key"), "1366 입력으로 문 열쇠를 얻는다")
 
-	game.direction_index = 0
+	game.direction_index = 2
 	game._select_item("door_key")
 	game._use_door()
-	_expect(game.flags.get("childhood_complete", false), "거대한 문을 연다")
+	_expect(game.flags.get("childhood_complete", false), "뒤쪽의 닫힌 문을 연다")
 	game._return_to_pharmacy()
 	game._brew_medicine()
 	_expect(game.flags.get("medicine_brewed", false), "약방에서 물약을 완성한다")
