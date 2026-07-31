@@ -12,7 +12,10 @@ from PIL import Image, ImageFilter
 
 def remove_connected_dark_background(source: Path, destination: Path) -> None:
     image = Image.open(source).convert("RGBA")
-    image.thumbnail((768, 1152), Image.Resampling.LANCZOS)
+    # The game renders the diary inside an 850×638 scene viewport. Keeping the
+    # portrait pages at 384×576 preserves readable handwriting while avoiding
+    # a web export larger than GitHub Pages' single-file limit.
+    image.thumbnail((384, 576), Image.Resampling.LANCZOS)
     width, height = image.size
     pixels = image.load()
     outside = Image.new("L", image.size, 0)
