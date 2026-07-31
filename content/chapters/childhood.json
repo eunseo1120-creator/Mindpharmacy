@@ -24,6 +24,40 @@
               "feedback": "다이얼 숫자를 입력할 수 있다."
             }
           ]
+        },
+        {
+          "id": "hotspot_alphabet_bookcase",
+          "label": "전화기 아래 알파벳 책장",
+          "bounds": { "x": 0.27, "y": 0.57, "width": 0.27, "height": 0.25 },
+          "interactions": [
+            {
+              "id": "interaction_insert_alphabet_book",
+              "trigger": "useItem",
+              "itemId": "item_alphabet_book",
+              "effects": [
+                { "type": "removeItem", "itemId": "item_alphabet_book" },
+                { "type": "addItem", "itemId": "item_picture_diary" },
+                { "type": "setFlag", "flag": "flag_diary_revealed", "value": true }
+              ],
+              "feedback": "X 책이 빈자리를 채우자 전화기 아래 비밀 칸에서 그림일기가 나타난다."
+            }
+          ]
+        },
+        {
+          "id": "hotspot_alphabet_book_floor",
+          "label": "바닥에 놓인 X 책",
+          "bounds": { "x": 0.08, "y": 0.8, "width": 0.18, "height": 0.15 },
+          "interactions": [
+            {
+              "id": "interaction_collect_alphabet_book",
+              "trigger": "click",
+              "effects": [
+                { "type": "addItem", "itemId": "item_alphabet_book" },
+                { "type": "setFlag", "flag": "flag_alphabet_book_collected", "value": true }
+              ],
+              "feedback": "표지에 알파벳 X가 적힌 낡은 책을 얻었다."
+            }
+          ]
         }
       ]
     },
@@ -162,8 +196,8 @@
           ]
         },
         {
-          "id": "hotspot_sofa",
-          "label": "소파 밑",
+          "id": "hotspot_bed",
+          "label": "침대 밑",
           "bounds": { "x": 0.27, "y": 0.5, "width": 0.45, "height": 0.25 },
           "interactions": [
             {
@@ -175,8 +209,8 @@
               ],
               "effects": [
                 { "type": "removeItem", "itemId": "item_repaired_bear" },
-                { "type": "addItem", "itemId": "item_storybook_page_1" },
-                { "type": "setFlag", "flag": "flag_storybook_page_1_found", "value": true }
+                { "type": "addItem", "itemId": "item_storybook_page_3" },
+                { "type": "setFlag", "flag": "flag_storybook_page_3_found", "value": true }
               ],
               "feedback": "곰인형을 그림일기와 같은 자리에 두자 종이 한 장이 떨어졌다."
             }
@@ -226,9 +260,20 @@
       "icon": "assets/items/childhood/repaired-bear.webp"
     },
     {
-      "id": "item_storybook_page_1",
-      "name": "동화책 첫 번째 페이지",
-      "icon": "assets/items/childhood/storybook-page-1.webp"
+      "id": "item_alphabet_book",
+      "name": "알파벳 X 책",
+      "icon": "assets/closeups/childhood/alphabet-book-floor.png"
+    },
+    {
+      "id": "item_picture_diary",
+      "name": "그림일기",
+      "description": "표지와 1~12쪽을 언제든 다시 펼쳐 단서를 확인할 수 있다.",
+      "icon": "assets/closeups/childhood/diary/cover.png"
+    },
+    {
+      "id": "item_storybook_page_3",
+      "name": "동화책 세 번째 페이지",
+      "icon": "assets/items/childhood/storybook-page.png"
     },
     {
       "id": "item_block_set",
@@ -236,9 +281,14 @@
       "icon": "assets/items/childhood/block-set.webp"
     },
     {
-      "id": "item_storybook_page_2",
-      "name": "동화책 두 번째 페이지",
-      "icon": "assets/items/childhood/storybook-page-2.webp"
+      "id": "item_storybook_page_4",
+      "name": "동화책 네 번째 페이지",
+      "icon": "assets/items/childhood/storybook-page.png"
+    },
+    {
+      "id": "item_storybook_page_5",
+      "name": "동화책 다섯 번째 페이지",
+      "icon": "assets/items/childhood/storybook-page.png"
     },
     {
       "id": "item_completed_storybook",
@@ -257,6 +307,23 @@
     }
   ],
   "puzzles": [
+    {
+      "id": "puzzle_reveal_picture_diary",
+      "name": "알파벳 책장의 비밀 칸",
+      "when": [
+        { "type": "hasItem", "itemId": "item_alphabet_book" }
+      ],
+      "effects": [
+        { "type": "removeItem", "itemId": "item_alphabet_book" },
+        { "type": "addItem", "itemId": "item_picture_diary" },
+        { "type": "setFlag", "flag": "flag_diary_revealed", "value": true }
+      ],
+      "hints": [
+        "전화기 아래 책장 가운데에 책 한 권이 비어 있다.",
+        "정면 바닥에 떨어진 X 책이 빈자리와 같은 크기다.",
+        "X 책을 빈자리에 꽂아 숨겨진 그림일기를 꺼내자."
+      ]
+    },
     {
       "id": "puzzle_repair_bear",
       "name": "곰인형 수선",
@@ -285,7 +352,7 @@
       ],
       "effects": [
         { "type": "removeItem", "itemId": "item_block_set" },
-        { "type": "addItem", "itemId": "item_storybook_page_2" },
+        { "type": "addItem", "itemId": "item_storybook_page_4" },
         { "type": "setFlag", "flag": "flag_train_repaired", "value": true }
       ],
       "hints": [
@@ -298,18 +365,20 @@
       "id": "puzzle_complete_storybook",
       "name": "점박이 곰과 하얀 곰",
       "when": [
-        { "type": "hasItem", "itemId": "item_storybook_page_1" },
-        { "type": "hasItem", "itemId": "item_storybook_page_2" }
+        { "type": "hasItem", "itemId": "item_storybook_page_3" },
+        { "type": "hasItem", "itemId": "item_storybook_page_4" },
+        { "type": "hasItem", "itemId": "item_storybook_page_5" }
       ],
       "effects": [
-        { "type": "removeItem", "itemId": "item_storybook_page_1" },
-        { "type": "replaceItem", "from": "item_storybook_page_2", "to": "item_completed_storybook" },
+        { "type": "removeItem", "itemId": "item_storybook_page_3" },
+        { "type": "removeItem", "itemId": "item_storybook_page_4" },
+        { "type": "replaceItem", "from": "item_storybook_page_5", "to": "item_completed_storybook" },
         { "type": "setFlag", "flag": "flag_storybook_completed", "value": true }
       ],
       "hints": [
         "찢어진 페이지들은 한 권의 책에서 나온 것 같다.",
         "페이지의 그림과 문장이 이어지는 순서를 찾아보자.",
-        "두 페이지를 순서대로 맞춰 완성된 동화책을 만들자."
+        "침대, 기차 레일, TV에서 얻은 3·4·5쪽을 드래그해 완성된 동화책을 만들자."
       ]
     },
     {
@@ -331,6 +400,30 @@
       ]
     }
   ],
+  "pictureDiary": {
+    "cover": "assets/closeups/childhood/diary/cover.png",
+    "pages": [
+      "assets/closeups/childhood/diary/page-01.png",
+      "assets/closeups/childhood/diary/page-02.png",
+      "assets/closeups/childhood/diary/page-03.png",
+      "assets/closeups/childhood/diary/page-04.png",
+      "assets/closeups/childhood/diary/page-05.png",
+      "assets/closeups/childhood/diary/page-06.png",
+      "assets/closeups/childhood/diary/page-07.png",
+      "assets/closeups/childhood/diary/page-08.png",
+      "assets/closeups/childhood/diary/page-09.png",
+      "assets/closeups/childhood/diary/page-10.png",
+      "assets/closeups/childhood/diary/page-11.png",
+      "assets/closeups/childhood/diary/page-12.png"
+    ],
+    "reopenable": true
+  },
+  "storybook": {
+    "title": "점박이 곰과 하얀 곰",
+    "collectiblePages": [3, 4, 5],
+    "contentVisibleOnlyAfterCompletion": true,
+    "backCoverCode": "1366"
+  },
   "completion": {
     "requiredFlags": ["flag_childhood_door_open"]
   }

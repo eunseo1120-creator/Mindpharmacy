@@ -12,6 +12,14 @@ const COLOR_PAPER := Color("#d7c39b")
 const COLOR_GOLD := Color("#d6ad5c")
 const COLOR_MUTED := Color("#a99878")
 const DIRECTIONS := ["front", "right", "back", "left"]
+const DIARY_PAGE_COUNT := 12
+const STORYBOOK_PAGES := [
+	"점박이 곰은 문 앞에 서서 몸을 떨고 있었어요.\n그때 하얀 곰이 와서 물어봤어요.\n\n“이 문을 나가면 바로 밖인데, 왜 안 나가고 있어?”",
+	"점박이 곰은 몸을 웅크리면서 말했어요.\n\n“이 밖으로 나가면 크고 무서운 것들이 많아서, 다시 못 돌아올 수도 있대.”\n\n하얀 곰은 가만히 들었어요.",
+	"점박이 곰은 다시 몸을 떨며 이어서 말했어요.\n\n“그리고 나는 털 색깔이 얼룩덜룩해서 비웃음을 당할 거야.”\n\n하얀 곰은 또 가만히 듣고 있었어요.",
+	"점박이 곰은 문 앞에서 계속 고민하고 또 고민했어요.\n그때 하얀 곰이 말했어요.\n\n“내가 옆에 있어줄게. 같이 나가자. 용기를 내 봐.”\n\n점박이 곰이 문을 열자 하얀 햇살과 예쁜 꽃들이 보였어요.",
+	"하얀 곰은 또다시 입을 열었어요.\n\n“혼자가 무섭다면 함께해도 괜찮아. 도와줄게.”"
+]
 
 var current_place := "pharmacy"
 var direction_index := 0
@@ -20,6 +28,8 @@ var selected_item := ""
 var flags: Dictionary = {}
 var phone_input := ""
 var shoe_input := ""
+var diary_page := 0
+var storybook_page := 0
 var developer_mode := false
 
 var room_art: Control
@@ -50,6 +60,7 @@ func _ready() -> void:
 		inventory.assign(saved.get("inventory", []))
 		flags = saved.get("flags", {})
 		developer_mode = bool(saved.get("developer_mode", false))
+		_migrate_childhood_save()
 		_set_status("저장된 기억에서 이어갑니다.")
 	else:
 		_set_status("빛나는 편지함을 눌러 보세요.")
@@ -311,6 +322,9 @@ func _build_childhood_hotspots() -> void:
 	match DIRECTIONS[direction_index]:
 		"front":
 			_add_hotspot("구형 전화기", Rect2(0.29, 0.48, 0.1, 0.12), _open_phone)
+			_add_hotspot("전화기 아래 알파벳 책장", Rect2(0.27, 0.57, 0.27, 0.25), _inspect_alphabet_bookcase)
+			if not flags.get("alphabet_book_collected", false) and not flags.get("diary_revealed", false):
+				_add_hotspot("바닥에 놓인 X 책", Rect2(0.08, 0.8, 0.18, 0.15), _inspect_floor_book)
 		"right":
 			if not flags.get("bear_repaired", false):
 				_add_hotspot("뜯어진 곰인형", Rect2(0.43, 0.69, 0.19, 0.22), _inspect_torn_bear)
@@ -621,22 +635,23 @@ func _place_train_on_rail() -> void:
 		_set_status("레일 위를 달릴 수 있는 수리된 장난감 기차가 필요하다.")
 		return
 	_remove_item("repaired_train")
-	_add_item("storybook_page_2")
+	_add_item("storybook_page_4")
 	flags["train_repaired"] = true
+	flags["storybook_page_4_found"] = true
 	selected_item = ""
 	_show_modal(
 		"레일 아래의 종이",
-		"기차가 움직이자 레일과 바퀴 사이에 눌려 있던 동화책 페이지 조각이 드러났다.",
+		"기차가 움직이자 레일과 바퀴 사이에 눌려 있던 동화책의 네 번째 페이지가 드러났다. 아직 내용은 펼쳐 보이지 않는다.",
 		[],
 		"res://assets/closeups/childhood/storybook-page-piece.png"
 	)
-	_set_status("동화책 페이지 조각을 얻었다.")
+	_set_status("동화책의 네 번째 페이지를 얻었다.")
 	_render()
 
 
 func _place_bear() -> void:
-	if flags.get("storybook_page_1_found", false):
-		_show_modal("침대 위의 동화책", "곰인형이 지키고 있던 낡은 동화책이다.", [], "res://assets/closeups/childhood/bed-storybook.png")
+	if flags.get("storybook_page_3_found", false):
+		_show_modal("침대 위의 세 번째 페이지", "곰인형이 지키고 있던 동화책 페이지가 있던 자리다.", [], "res://assets/closeups/childhood/bed-storybook.png")
 		return
 	if selected_item != "repaired_bear":
 		_set_status("침대 밑에는 곰인형 하나가 들어갈 만한 빈자리가 있다.")
@@ -654,15 +669,15 @@ func _place_bear() -> void:
 
 
 func _reveal_storybook() -> void:
-	_add_item("storybook_page_1")
-	flags["storybook_page_1_found"] = true
+	_add_item("storybook_page_3")
+	flags["storybook_page_3_found"] = true
 	_show_modal(
-		"침대 위의 동화책",
-		"마지막 부분이 뜯겨 나간 낡은 동화책을 얻었다.",
+		"침대 위의 세 번째 페이지",
+		"동화책의 세 번째 페이지 조각이다. 완성하기 전에는 내용을 확인할 수 없다.",
 		[],
 		"res://assets/closeups/childhood/bed-storybook.png"
 	)
-	_set_status("페이지가 빠진 동화책을 얻었다.")
+	_set_status("동화책의 세 번째 페이지를 얻었다.")
 	_render()
 
 
@@ -846,13 +861,16 @@ func _change_tv_volume(delta: int) -> void:
 	flags["tv_volume"] = volume
 	if volume == 14:
 		flags["tv_volume_set"] = true
+		if not flags.get("storybook_page_5_found", false):
+			_add_item("storybook_page_5")
+			flags["storybook_page_5_found"] = true
 		_show_modal(
 			"볼륨 14",
-			"TV 소리가 거의 들리지 않을 만큼 작아진다. 화면에 상담 전화 번호 [b]1366[/b]이 잠시 나타난다.",
+			"TV 소리가 거의 들리지 않을 만큼 작아진다. 리모컨 아래에서 동화책의 다섯 번째 페이지가 미끄러져 나온다. 완성하기 전에는 내용을 확인할 수 없다.",
 			[],
 			"res://assets/closeups/childhood/tv-volume-14.png"
 		)
-		_set_status("엄마의 쪽지대로 TV 볼륨을 14에 맞췄다. 화면에 1366이 나타났다.")
+		_set_status("엄마의 쪽지대로 TV 볼륨을 14에 맞추고 동화책의 다섯 번째 페이지를 얻었다.")
 	else:
 		_show_volume_control()
 	_save()
@@ -897,16 +915,22 @@ func _combine_dragged_items(source: String, target: String) -> void:
 		flags["remote_powered"] = true
 		_show_modal("작동하는 리모컨", "건전지 두 개를 넣자 작은 전원등이 켜졌다.", [], "res://assets/closeups/childhood/remote-powered.png")
 		_set_status("건전지가 들어간 리모컨을 얻었다.")
-	elif _same_pair(source, target, "storybook_page_1", "storybook_page_2"):
+	elif source in ["storybook_page_3", "storybook_page_4", "storybook_page_5"] and target in ["storybook_page_3", "storybook_page_4", "storybook_page_5"]:
+		_consume_pair(source, target)
+		_add_item("storybook_page_pair")
+		_set_status("찾은 동화책 페이지 두 장을 맞췄다. 마지막 한 장이 더 필요하다.")
+	elif (
+		(source == "storybook_page_pair" and target in ["storybook_page_3", "storybook_page_4", "storybook_page_5"])
+		or (target == "storybook_page_pair" and source in ["storybook_page_3", "storybook_page_4", "storybook_page_5"])
+	):
 		_consume_pair(source, target)
 		_add_item("completed_storybook")
 		flags["storybook_completed"] = true
-		_show_modal(
-			"점박이 곰과 하얀 곰",
-			"“혼자가 무섭다면 함께해도 괜찮아. 도와달라고 말해도 괜찮아.”\n\n레일 밑에서 찾은 조각이 마지막 문장을 완성했다.",
-			[]
-		)
-		_set_status("동화책의 빠진 페이지를 완성했다.")
+		_set_status("세 페이지를 모두 맞춰 ‘점박이 곰과 하얀 곰’을 완성했다.")
+		_refresh_inventory()
+		_save()
+		_open_storybook(0)
+		return
 	elif _same_pair(source, target, "torn_shoe", "clear_tape"):
 		_consume_pair(source, target)
 		_add_item("repaired_shoe")
@@ -953,6 +977,124 @@ func _consume_pair(source: String, target: String) -> void:
 	_remove_item(target)
 
 
+func _inspect_floor_book() -> void:
+	_show_modal(
+		"바닥에 떨어진 책",
+		"다른 책들과 같은 크기의 낡은 책이다. 표지에는 알파벳 X 하나만 적혀 있다.",
+		[] if flags.get("alphabet_book_collected", false) else [{"label": "X 책 획득", "callback": _collect_alphabet_book}],
+		"res://assets/closeups/childhood/alphabet-book-floor.png"
+	)
+
+
+func _collect_alphabet_book() -> void:
+	_add_item("alphabet_book")
+	flags["alphabet_book_collected"] = true
+	_close_modal()
+	_set_status("바닥에서 알파벳 X 책을 주웠다. 전화기 아래 책장의 빈자리가 떠오른다.")
+	_render()
+
+
+func _inspect_alphabet_bookcase() -> void:
+	if flags.get("diary_revealed", false):
+		_show_modal(
+			"열린 비밀 칸",
+			"X 책이 빈자리를 채우자 전화기 아래의 얕은 비밀 칸이 열렸다.",
+			[{"label": "그림일기 펼치기", "callback": _open_diary.bind(0)}] if flags.get("diary_collected", false) else [{"label": "그림일기 획득", "callback": _collect_picture_diary}],
+			"res://assets/closeups/childhood/alphabet-bookcase-diary.png"
+		)
+		return
+	var actions: Array = []
+	if inventory.has("alphabet_book"):
+		actions.append({"label": "X 책을 빈자리에 꽂기", "callback": _insert_alphabet_book})
+	_show_modal(
+		"알파벳 책장",
+		"책등마다 알파벳 하나가 적혀 있다. 가운데에 책 한 권이 들어갈 만한 빈자리가 있다.",
+		actions,
+		"res://assets/closeups/childhood/alphabet-bookcase-empty.png"
+	)
+	if actions.is_empty():
+		_set_status("책장의 가운데 한 자리가 비어 있다. 바닥에 떨어진 책을 찾아보자.")
+
+
+func _insert_alphabet_book() -> void:
+	if not inventory.has("alphabet_book"):
+		_set_status("빈자리에 맞는 책이 필요하다.")
+		return
+	_remove_item("alphabet_book")
+	flags["diary_revealed"] = true
+	selected_item = ""
+	_show_modal(
+		"숨겨진 그림일기",
+		"X 책이 제자리에 들어가자 전화기 아래에서 작은 칸이 열리고 낡은 그림일기가 나타났다.",
+		[{"label": "그림일기 획득", "callback": _collect_picture_diary}],
+		"res://assets/closeups/childhood/alphabet-bookcase-diary.png"
+	)
+	_set_status("알파벳 책장의 비밀 칸에서 그림일기를 발견했다.")
+	_refresh_inventory()
+	_save()
+
+
+func _collect_picture_diary() -> void:
+	_add_item("picture_diary")
+	flags["diary_collected"] = true
+	_set_status("그림일기를 얻었다. 소지품에서 여러 번 펼쳐 단서를 확인할 수 있다.")
+	_refresh_inventory()
+	_save()
+	_open_diary(0)
+
+
+func _open_diary(page: int = 0) -> void:
+	diary_page = clampi(page, 0, DIARY_PAGE_COUNT)
+	flags["diary_page_%02d_seen" % diary_page] = true
+	var actions: Array = []
+	if diary_page > 0:
+		actions.append({"label": "이전 장", "callback": _open_diary.bind(diary_page - 1)})
+	if diary_page < DIARY_PAGE_COUNT:
+		actions.append({"label": "일기 펼치기" if diary_page == 0 else "다음 장", "callback": _open_diary.bind(diary_page + 1)})
+	var image_path := "res://assets/closeups/childhood/diary/cover.png" if diary_page == 0 else "res://assets/closeups/childhood/diary/page-%02d.png" % diary_page
+	_show_modal(
+		"그림일기 표지" if diary_page == 0 else "그림일기 · %d쪽" % diary_page,
+		_diary_caption(diary_page),
+		actions,
+		image_path
+	)
+	_save()
+
+
+func _diary_caption(page: int) -> String:
+	return {
+		0: "표지에는 아이와 부모, 하얀 곰인형 몽이가 함께 그려져 있다.",
+		1: "몽이를 안고 10부터 거꾸로 세면 큰 소리가 멈췄다고 적혀 있다.",
+		2: "엄마는 처음 보는 아저씨를 아빠에게 비밀로 해 달라고 했다.",
+		3: "아빠가 엄마에게 나가라고 소리쳤고, 아이는 다시 숫자를 거꾸로 셌다.",
+		4: "엄마는 미안하다는 말과 함께 바퀴 달린 가방을 끌고 어두운 밖으로 나갔다.",
+		5: "5쪽은 크게 찢겨 나가 읽을 수 없다.",
+		6: "6쪽도 대부분 찢겨 나가 있다.",
+		7: "7쪽에는 종잇조각과 희미한 크레용 자국만 남아 있다.",
+		8: "8쪽은 가장자리만 남고 통째로 사라졌다.",
+		9: "엄마가 돌아오지 않는 동안 아빠는 이상한 냄새를 풍기며 무서운 말을 했다.",
+		10: "아빠가 던진 장난감 기차가 부서졌다는 기록이다.",
+		11: "몽이마저 망가졌고, 아이는 자신이 고칠 수 있을지 묻고 있다.",
+		12: "아이는 몸의 얼룩 때문에 밖에 나가면 안 된다는 말을 믿고 집에서 기다렸다."
+	}.get(page, "")
+
+
+func _open_storybook(page: int = 0) -> void:
+	storybook_page = clampi(page, 0, STORYBOOK_PAGES.size())
+	var actions: Array = []
+	if storybook_page > 0:
+		actions.append({"label": "이전 페이지", "callback": _open_storybook.bind(storybook_page - 1)})
+	if storybook_page < STORYBOOK_PAGES.size():
+		actions.append({"label": "다음 페이지" if storybook_page < STORYBOOK_PAGES.size() - 1 else "맨 뒷장", "callback": _open_storybook.bind(storybook_page + 1)})
+	if storybook_page == STORYBOOK_PAGES.size():
+		flags["storybook_code_seen"] = true
+		_show_modal("점박이 곰과 하얀 곰 · 맨 뒷장", "[center]책의 맨 뒷장에 연필로 눌러쓴 숫자가 있다.\n\n[font_size=48][b]1366[/b][/font_size][/center]", actions)
+		_set_status("완성된 동화책의 맨 뒷장에서 1366을 확인했다.")
+	else:
+		_show_modal("점박이 곰과 하얀 곰 · %d/5" % (storybook_page + 1), "[center]" + STORYBOOK_PAGES[storybook_page] + "[/center]", actions)
+	_save()
+
+
 func _open_phone() -> void:
 	phone_input = ""
 	_show_modal("구형 다이얼 전화기", "[center][font_size=34]— — — —[/font_size][/center]", [])
@@ -969,7 +1111,7 @@ func _dial_digit(digit: String) -> void:
 	var display := " ".join(phone_input.split(""))
 	modal_body.text = "[center][font_size=34]" + display + "[/font_size][/center]"
 	if phone_input.length() == 4:
-		if phone_input == "1366" and inventory.has("completed_storybook") and flags.get("tv_volume_set", false):
+		if phone_input == "1366" and inventory.has("completed_storybook") and flags.get("storybook_code_seen", false):
 			_add_item("courage")
 			_add_item("door_key")
 			flags["phone_code_entered"] = true
@@ -978,7 +1120,7 @@ func _dial_digit(digit: String) -> void:
 			_set_status("전화기 아래 칸이 열렸다. 용기의 눈물과 열쇠를 얻었다.")
 			_render()
 		elif phone_input == "1366":
-			_set_status("번호는 맞지만, 동화책과 TV 화면이 가리키는 의미를 더 확인해야 한다.")
+			_set_status("번호는 맞지만, 완성된 동화책의 맨 뒷장을 직접 확인해야 한다.")
 		else:
 			_set_status("연결되지 않는다. 번호를 다시 생각해 보자.")
 
@@ -1218,6 +1360,12 @@ func _brew_medicine() -> void:
 
 
 func _select_item(item: String) -> void:
+	if item == "picture_diary":
+		_open_diary(0)
+		return
+	if item == "completed_storybook":
+		_open_storybook(0)
+		return
 	selected_item = "" if selected_item == item else item
 	if selected_item.is_empty():
 		_set_status("아이템 선택을 해제했다.")
@@ -1234,7 +1382,15 @@ func _show_hint() -> void:
 		else:
 			hint = "오른쪽 방향의 편지함을 살펴보세요."
 	elif current_place == "childhood":
-		if not flags.get("needle_collected", false):
+		if not flags.get("alphabet_book_collected", false):
+			hint = "정면 책장 앞 바닥에 떨어진 알파벳 X 책을 찾으세요."
+		elif not flags.get("diary_revealed", false):
+			hint = "정면의 전화기 아래 알파벳 책장을 열고 X 책을 빈자리에 꽂으세요."
+		elif not flags.get("diary_collected", false):
+			hint = "알파벳 책장 비밀 칸에서 그림일기를 꺼내세요."
+		elif not flags.get("diary_page_01_seen", false):
+			hint = "소지품의 그림일기를 펼쳐 첫 번째 기록부터 읽어 보세요."
+		elif not flags.get("needle_collected", false):
 			hint = "뒤쪽 서랍장을 열어 바늘을 찾으세요."
 		elif not flags.get("thread_collected", false):
 			hint = "뒤쪽 옷장을 열고 올이 풀린 니트에서 실을 얻으세요."
@@ -1244,7 +1400,7 @@ func _show_hint() -> void:
 			hint = "오른쪽 바닥의 뜯어진 곰인형을 살펴보세요."
 		elif not flags.get("bear_repaired", false):
 			hint = "바느질 세트를 선택하고 오른쪽 바닥의 곰인형을 누르세요."
-		elif not flags.get("storybook_page_1_found", false):
+		elif not flags.get("storybook_page_3_found", false):
 			hint = "꼬매진 곰인형을 선택하고 왼쪽 침대를 누르세요."
 		elif not flags.get("blocks_collected", false):
 			hint = "오른쪽 바닥의 빨강, 노랑, 파랑 기차 블록을 주우세요."
@@ -1254,8 +1410,6 @@ func _show_hint() -> void:
 			hint = "노랑, 파랑, 빨강 블록을 조합해 기차를 수리하세요."
 		elif not flags.get("train_repaired", false):
 			hint = "수리된 기차를 선택하고 오른쪽 바닥의 레일을 누르세요."
-		elif not flags.get("storybook_completed", false):
-			hint = "페이지가 빠진 동화책과 레일 밑의 조각을 조합하세요."
 		elif not flags.get("shoe_size_seen", false):
 			hint = "왼쪽 신발장의 열린 오른쪽 칸에서 낡은 구두 안쪽을 확인하세요."
 		elif not flags.get("shoe_cabinet_unlocked", false):
@@ -1272,8 +1426,12 @@ func _show_hint() -> void:
 			hint = "건전지 없는 리모컨과 건전지 두 개를 조합하세요."
 		elif not flags.get("tv_volume_set", false):
 			hint = "작동하는 리모컨을 선택해 TV 볼륨을 14로 맞추세요."
+		elif not flags.get("storybook_completed", false):
+			hint = "침대, 기차 레일, TV에서 얻은 동화책 3·4·5쪽을 서로 드래그해 완성하세요."
+		elif not flags.get("storybook_code_seen", false):
+			hint = "완성된 동화책을 펼치고 맨 뒷장의 번호를 확인하세요."
 		elif not flags.get("courage_obtained", false):
-			hint = "TV에 나타난 1366을 정면의 구형 전화기에 입력하세요."
+			hint = "동화책 맨 뒷장의 1366을 정면 구형 전화기에 입력하세요."
 		else:
 			hint = "열쇠를 선택한 뒤 뒤쪽의 닫힌 문을 눌러 보세요."
 	elif current_place == "school":
@@ -1382,6 +1540,10 @@ func _developer_solve_current() -> void:
 			flags["chapter_returned"] = false
 		"childhood":
 			flags.merge({
+				"alphabet_book_collected": true,
+				"diary_revealed": true,
+				"diary_collected": true,
+				"diary_page_01_seen": true,
 				"dresser_open": true,
 				"needle_collected": true,
 				"wardrobe_open": true,
@@ -1389,12 +1551,14 @@ func _developer_solve_current() -> void:
 				"sewing_kit_made": true,
 				"bear_collected": true,
 				"bear_repaired": true,
-				"storybook_page_1_found": true,
+				"storybook_page_3_found": true,
 				"blocks_collected": true,
 				"train_order_seen": true,
 				"train_blocks_combined": true,
 				"train_repaired": true,
+				"storybook_page_4_found": true,
 				"storybook_completed": true,
+				"storybook_code_seen": true,
 				"shoe_size_seen": true,
 				"shoe_cabinet_unlocked": true,
 				"mother_note_collected": true,
@@ -1405,9 +1569,12 @@ func _developer_solve_current() -> void:
 				"remote_powered": true,
 				"tv_volume": 14,
 				"tv_volume_set": true,
+				"storybook_page_5_found": true,
 				"phone_code_entered": true,
 				"courage_obtained": true
 			}, true)
+			_add_item("picture_diary")
+			_add_item("completed_storybook")
 			_add_item("courage")
 			_add_item("door_key")
 		"school":
@@ -1460,6 +1627,8 @@ func _reset_game() -> void:
 	selected_item = ""
 	phone_input = ""
 	shoe_input = ""
+	diary_page = 0
+	storybook_page = 0
 	_close_modal()
 	_set_status("빛나는 편지함을 눌러 보세요.")
 	_render()
@@ -1496,6 +1665,7 @@ func _show_closeup(heading: String, body: String, actions: Array, image_path: St
 	for child in closeup_actions.get_children():
 		child.queue_free()
 	closeup_image.texture = load(image_path) as Texture2D
+	closeup_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if "/diary/" in image_path else TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	var caption := body.strip_edges()
 	if caption.is_empty():
 		caption = heading
@@ -1527,6 +1697,22 @@ func _save() -> void:
 		"flags": flags,
 		"developer_mode": developer_mode
 	})
+
+
+func _migrate_childhood_save() -> void:
+	if inventory.has("storybook_page_1"):
+		inventory.erase("storybook_page_1")
+		_add_item("storybook_page_3")
+	if inventory.has("storybook_page_2"):
+		inventory.erase("storybook_page_2")
+		_add_item("storybook_page_4")
+	if flags.get("storybook_page_1_found", false):
+		flags["storybook_page_3_found"] = true
+	if flags.get("train_repaired", false):
+		flags["storybook_page_4_found"] = true
+	if flags.get("tv_volume_set", false) and not flags.get("storybook_completed", false):
+		_add_item("storybook_page_5")
+		flags["storybook_page_5_found"] = true
 
 
 func _add_item(item: String) -> void:
@@ -1563,8 +1749,12 @@ func _item_name(item: String) -> String:
 		"block_blue": "파란 기차 블록",
 		"train_pair_yellow_blue": "노랑·파랑 기차 블록",
 		"repaired_train": "수리된 장난감 기차",
-		"storybook_page_1": "페이지가 빠진 동화책",
-		"storybook_page_2": "동화책 페이지 조각",
+		"alphabet_book": "알파벳 X 책",
+		"picture_diary": "그림일기",
+		"storybook_page_3": "동화책 세 번째 페이지",
+		"storybook_page_4": "동화책 네 번째 페이지",
+		"storybook_page_5": "동화책 다섯 번째 페이지",
+		"storybook_page_pair": "맞춰진 동화책 페이지 두 장",
 		"completed_storybook": "완성된 동화책",
 		"mother_note": "엄마의 쪽지",
 		"empty_remote": "건전지 없는 리모컨",
@@ -1604,8 +1794,12 @@ func _item_symbol(item: String) -> String:
 		"block_blue": "B",
 		"train_pair_yellow_blue": "YB",
 		"repaired_train": "車",
-		"storybook_page_1": "頁",
-		"storybook_page_2": "頁",
+		"alphabet_book": "X",
+		"picture_diary": "日",
+		"storybook_page_3": "3",
+		"storybook_page_4": "4",
+		"storybook_page_5": "5",
+		"storybook_page_pair": "頁",
 		"completed_storybook": "冊",
 		"mother_note": "書",
 		"empty_remote": "遥",
@@ -1645,9 +1839,13 @@ func _item_texture(item: String) -> Texture2D:
 		"block_blue": "res://assets/items/childhood/block-blue.png",
 		"train_pair_yellow_blue": "res://assets/items/childhood/repaired-train.png",
 		"repaired_train": "res://assets/items/childhood/repaired-train.png",
-		"storybook_page_1": "res://assets/items/childhood/storybook.png",
-		"storybook_page_2": "res://assets/items/childhood/storybook-page.png",
-		"completed_storybook": "res://assets/items/finale/sketchbook.png",
+		"alphabet_book": "res://assets/closeups/childhood/alphabet-book-floor.png",
+		"picture_diary": "res://assets/closeups/childhood/diary/cover.png",
+		"storybook_page_3": "res://assets/items/childhood/storybook-page.png",
+		"storybook_page_4": "res://assets/items/childhood/storybook-page.png",
+		"storybook_page_5": "res://assets/items/childhood/storybook-page.png",
+		"storybook_page_pair": "res://assets/items/childhood/storybook-page.png",
+		"completed_storybook": "res://assets/items/childhood/storybook.png",
 		"mother_note": "res://assets/items/childhood/mother-note.png",
 		"empty_remote": "res://assets/items/childhood/remote-empty.png",
 		"remote_one_battery": "res://assets/items/childhood/remote-empty.png",

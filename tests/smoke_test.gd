@@ -31,6 +31,16 @@ func _run() -> void:
 	game._enter_childhood()
 	_expect(game.current_place == "childhood", "편지에서 유아기 방으로 이동한다")
 
+	game._inspect_floor_book()
+	game._collect_alphabet_book()
+	_expect(game.inventory.has("alphabet_book"), "바닥에서 알파벳 X 책을 얻는다")
+	game._inspect_alphabet_bookcase()
+	game._insert_alphabet_book()
+	game._collect_picture_diary()
+	_expect(game.inventory.has("picture_diary"), "책장의 빈자리를 채워 그림일기를 얻는다")
+	game._open_diary(12)
+	_expect(game.flags.get("diary_page_12_seen", false), "그림일기 표지와 12쪽을 반복해서 펼쳐본다")
+
 	game._inspect_dresser()
 	game._open_dresser()
 	game._collect_needle()
@@ -48,7 +58,7 @@ func _run() -> void:
 	game._select_item("repaired_bear")
 	game._place_bear()
 	game._reveal_storybook()
-	_expect(game.inventory.has("storybook_page_1"), "침대 위에서 빠진 페이지가 있는 동화책을 얻는다")
+	_expect(game.inventory.has("storybook_page_3"), "곰인형을 침대 밑에 두고 동화책 3쪽을 얻는다")
 
 	game._collect_blocks()
 	game._inspect_train_photo()
@@ -58,9 +68,7 @@ func _run() -> void:
 	_expect(game.inventory.has("repaired_train"), "노랑·파랑·빨강 순서로 기차를 수리한다")
 	game._select_item("repaired_train")
 	game._place_train_on_rail()
-	_expect(game.inventory.has("storybook_page_2"), "기차가 움직인 뒤 페이지 조각을 얻는다")
-	game._combine_dragged_items("storybook_page_1", "storybook_page_2")
-	_expect(game.inventory.has("completed_storybook"), "동화책을 완성한다")
+	_expect(game.inventory.has("storybook_page_4"), "기차가 움직인 뒤 동화책 4쪽을 얻는다")
 
 	game._inspect_shoe_cabinet()
 	game._inspect_old_shoe()
@@ -87,6 +95,13 @@ func _run() -> void:
 	for step in range(14):
 		game._change_tv_volume(1)
 	_expect(game.flags.get("tv_volume_set", false), "TV 볼륨을 14에 맞춘다")
+	_expect(game.inventory.has("storybook_page_5"), "볼륨 14에서 동화책 5쪽을 얻는다")
+	game._combine_dragged_items("storybook_page_3", "storybook_page_4")
+	_expect(game.inventory.has("storybook_page_pair"), "동화책 3쪽과 4쪽을 먼저 맞춘다")
+	game._combine_dragged_items("storybook_page_pair", "storybook_page_5")
+	_expect(game.inventory.has("completed_storybook"), "세 페이지를 조합해 동화책을 완성한다")
+	game._open_storybook(5)
+	_expect(game.flags.get("storybook_code_seen", false), "완성된 동화책 맨 뒷장에서 1366을 확인한다")
 
 	game._open_phone()
 	for digit in ["1", "3", "6", "6"]:
