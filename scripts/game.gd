@@ -2,6 +2,7 @@ extends Control
 
 const RoomArt = preload("res://scripts/room_art.gd")
 const SaveManagerScript = preload("res://scripts/save_manager.gd")
+const InventoryItemButtonScript = preload("res://scripts/inventory_item_button.gd")
 const UI_FONT = preload("res://assets/fonts/NotoSansKR-Variable.ttf")
 
 const COLOR_INK := Color("#211a18")
@@ -27,7 +28,11 @@ var inventory_list: VBoxContainer
 var status_label: Label
 var left_button: Button
 var right_button: Button
-var combine_button: Button
+var closeup_layer: Control
+var closeup_image: TextureRect
+var closeup_caption: RichTextLabel
+var closeup_actions: HBoxContainer
+var closeup_back_button: Button
 var modal_layer: ColorRect
 var modal_title: Label
 var modal_image: TextureRect
@@ -131,12 +136,9 @@ func _build_ui() -> void:
 	inventory_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	inventory_list.add_theme_constant_override("separation", 7)
 	scroll.add_child(inventory_list)
-	combine_button = _make_inventory_button("＋", "아이템 조합")
-	combine_button.pressed.connect(_combine_items)
-	inventory_column.add_child(combine_button)
 
 	var settings_button := Button.new()
-	settings_button.text = "⚙"
+	settings_button.text = "≡"
 	settings_button.tooltip_text = "설정"
 	settings_button.accessibility_name = "설정"
 	settings_button.position = Vector2(18, 16)
@@ -164,7 +166,67 @@ func _build_ui() -> void:
 	status_label.z_index = 15
 	add_child(status_label)
 
+	_build_closeup(scene_root)
 	_build_modal()
+
+
+func _build_closeup(scene_root: Control) -> void:
+	closeup_layer = Control.new()
+	closeup_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	closeup_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	closeup_layer.visible = false
+	closeup_layer.z_index = 60
+	scene_root.add_child(closeup_layer)
+
+	var black := ColorRect.new()
+	black.color = Color.BLACK
+	black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	closeup_layer.add_child(black)
+
+	closeup_image = TextureRect.new()
+	closeup_image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	closeup_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	closeup_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	closeup_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	closeup_layer.add_child(closeup_image)
+
+	var action_center := CenterContainer.new()
+	action_center.anchor_left = 0.08
+	action_center.anchor_top = 0.7
+	action_center.anchor_right = 0.92
+	action_center.anchor_bottom = 0.8
+	closeup_layer.add_child(action_center)
+	closeup_actions = HBoxContainer.new()
+	closeup_actions.add_theme_constant_override("separation", 10)
+	action_center.add_child(closeup_actions)
+
+	var caption_panel := PanelContainer.new()
+	caption_panel.anchor_left = 0.07
+	caption_panel.anchor_top = 0.8
+	caption_panel.anchor_right = 0.93
+	caption_panel.anchor_bottom = 0.92
+	caption_panel.add_theme_stylebox_override("panel", _panel_style(Color(0, 0, 0, 0.8), Color.TRANSPARENT, 0))
+	closeup_layer.add_child(caption_panel)
+	closeup_caption = RichTextLabel.new()
+	closeup_caption.bbcode_enabled = true
+	closeup_caption.fit_content = false
+	closeup_caption.scroll_active = false
+	closeup_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	closeup_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	closeup_caption.add_theme_font_size_override("normal_font_size", 20)
+	closeup_caption.add_theme_font_size_override("bold_font_size", 21)
+	closeup_caption.add_theme_color_override("default_color", Color.WHITE)
+	caption_panel.add_child(closeup_caption)
+
+	closeup_back_button = _make_arrow_button("↓", "방 화면으로 돌아가기")
+	closeup_back_button.anchor_left = 0.46
+	closeup_back_button.anchor_top = 0.92
+	closeup_back_button.anchor_right = 0.54
+	closeup_back_button.anchor_bottom = 1.0
+	closeup_back_button.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
+	closeup_back_button.pressed.connect(_close_closeup)
+	closeup_layer.add_child(closeup_back_button)
 
 
 func _build_modal() -> void:
@@ -352,7 +414,9 @@ func _refresh_inventory() -> void:
 	for index in range(slot_count):
 		if index < inventory.size():
 			var item := inventory[index]
-			var item_button := _make_inventory_button(_item_symbol(item), _item_name(item))
+			var item_button := _make_inventory_button(_item_symbol(item), _item_name(item)) as InventoryItemButton
+			item_button.item_id = item
+			item_button.item_dropped.connect(_combine_dragged_items)
 			var item_texture := _item_texture(item)
 			if item_texture != null:
 				item_button.text = ""
@@ -366,7 +430,6 @@ func _refresh_inventory() -> void:
 			var empty_slot := _make_inventory_button("", "빈 소지품 칸")
 			empty_slot.disabled = true
 			inventory_list.add_child(empty_slot)
-	combine_button.disabled = inventory.size() < 2
 
 
 func _open_letter() -> void:
@@ -795,32 +858,47 @@ func _change_tv_volume(delta: int) -> void:
 	_save()
 
 
-func _combine_items() -> void:
-	if inventory.has("needle") and inventory.has("thread"):
-		_remove_item("needle")
-		_remove_item("thread")
+func _combine_dragged_items(source: String, target: String) -> void:
+	if source == target or not inventory.has(source) or not inventory.has(target):
+		return
+	var combined := true
+	if _same_pair(source, target, "needle", "thread"):
+		_consume_pair(source, target)
 		_add_item("sewing_kit")
 		flags["sewing_kit_made"] = true
-		_set_status("바늘과 실을 묶어 바느질 세트를 만들었다.")
-	elif inventory.has("block_yellow") and inventory.has("block_blue") and inventory.has("block_red") and flags.get("train_order_seen", false):
-		_remove_item("block_yellow")
-		_remove_item("block_blue")
-		_remove_item("block_red")
+		_set_status("바늘을 실에 끼워 바느질 세트를 만들었다.")
+	elif _same_pair(source, target, "block_yellow", "block_blue"):
+		if not flags.get("train_order_seen", false):
+			_set_status("블록의 순서를 알려 주는 단서를 먼저 찾아야 한다.")
+			combined = false
+		else:
+			_consume_pair(source, target)
+			_add_item("train_pair_yellow_blue")
+			_set_status("노란 블록과 파란 블록을 연결했다. 마지막 객차가 필요하다.")
+	elif _same_pair(source, target, "train_pair_yellow_blue", "block_red"):
+		_consume_pair(source, target)
 		_add_item("repaired_train")
 		flags["train_blocks_combined"] = true
 		_show_modal("수리된 장난감 기차", "액자에서 본 순서대로 노랑, 파랑, 빨강 객차를 연결했다.", [], "res://assets/closeups/childhood/repaired-train.png")
 		_set_status("수리된 장난감 기차를 얻었다.")
-	elif inventory.has("empty_remote") and inventory.has("battery_1") and inventory.has("battery_2"):
-		_remove_item("empty_remote")
-		_remove_item("battery_1")
-		_remove_item("battery_2")
+	elif (
+		(source == "empty_remote" and target in ["battery_1", "battery_2"])
+		or (target == "empty_remote" and source in ["battery_1", "battery_2"])
+	):
+		_consume_pair(source, target)
+		_add_item("remote_one_battery")
+		_set_status("리모컨에 건전지 한 개를 넣었다. 한 개가 더 필요하다.")
+	elif (
+		(source == "remote_one_battery" and target in ["battery_1", "battery_2"])
+		or (target == "remote_one_battery" and source in ["battery_1", "battery_2"])
+	):
+		_consume_pair(source, target)
 		_add_item("powered_remote")
 		flags["remote_powered"] = true
 		_show_modal("작동하는 리모컨", "건전지 두 개를 넣자 작은 전원등이 켜졌다.", [], "res://assets/closeups/childhood/remote-powered.png")
 		_set_status("건전지가 들어간 리모컨을 얻었다.")
-	elif inventory.has("storybook_page_1") and inventory.has("storybook_page_2"):
-		_remove_item("storybook_page_1")
-		_remove_item("storybook_page_2")
+	elif _same_pair(source, target, "storybook_page_1", "storybook_page_2"):
+		_consume_pair(source, target)
 		_add_item("completed_storybook")
 		flags["storybook_completed"] = true
 		_show_modal(
@@ -829,30 +907,50 @@ func _combine_items() -> void:
 			[]
 		)
 		_set_status("동화책의 빠진 페이지를 완성했다.")
-	elif inventory.has("torn_shoe") and inventory.has("clear_tape"):
-		_remove_item("torn_shoe")
-		_remove_item("clear_tape")
+	elif _same_pair(source, target, "torn_shoe", "clear_tape"):
+		_consume_pair(source, target)
 		_add_item("repaired_shoe")
 		flags["shoe_repaired"] = true
 		_show_modal("되찾은 이름", "실내화 안쪽, 테이프에 가려졌던 글씨가 드러난다.\n\n[center][font_size=32]윤 · 슬 · 기[/font_size][/center]\n\n낙서는 이름이 아니다.", [])
 		_set_status("지워지지 않은 본래의 이름을 찾았다.")
-	elif inventory.has("bus_ticket") and inventory.has("phone"):
-		flags["phone_unlocked"] = true
+	elif _same_pair(source, target, "bus_ticket", "phone"):
 		_remove_item("bus_ticket")
+		flags["phone_unlocked"] = true
 		_show_modal("잠금 화면", "표의 날짜 10월 9일을 입력했다.\n\n메모 앱에는 한 문장만 남아 있다.\n[italic]“내일 오전 9시, 창가의 화분에 물 주기.”[/italic]", [])
 		_set_status("휴대전화가 열렸다. 내일을 위한 작은 약속을 찾았다.")
-	elif flags.get("records_seen", false) and inventory.has("courage_vial") and inventory.has("will_vial") and inventory.has("self_trust_vial"):
-		_remove_item("courage_vial")
-		_remove_item("will_vial")
-		_remove_item("self_trust_vial")
+	elif source in ["courage_vial", "will_vial", "self_trust_vial"] and target in ["courage_vial", "will_vial", "self_trust_vial"]:
+		if not flags.get("records_seen", false):
+			_set_status("세 감정이 어떤 의미인지 기록을 먼저 확인해야 한다.")
+			combined = false
+		else:
+			_consume_pair(source, target)
+			_add_item("emotion_vial_pair")
+			_set_status("두 감정의 병이 하나로 이어졌다. 마지막 병을 더해 보자.")
+	elif (
+		(source == "emotion_vial_pair" and target in ["courage_vial", "will_vial", "self_trust_vial"])
+		or (target == "emotion_vial_pair" and source in ["courage_vial", "will_vial", "self_trust_vial"])
+	):
+		_consume_pair(source, target)
 		_add_item("heart_key")
 		flags["heart_key_made"] = true
 		_show_modal("마음의 열쇠", "[center]용기, 의지, 자기 신뢰가 하나의 열쇠가 된다.\n\n상처가 사라진 것은 아니다.\n하지만 이제 문을 열 사람을 알고 있다.[/center]", [])
 		_set_status("마음의 열쇠가 완성되었다.")
 	else:
-		_set_status("지금 가진 물건들로는 조합할 수 없다.")
-	_refresh_inventory()
-	_save()
+		combined = false
+		_set_status("이 두 물건은 서로 맞지 않는다.")
+	if combined:
+		selected_item = ""
+		_refresh_inventory()
+		_save()
+
+
+func _same_pair(source: String, target: String, first: String, second: String) -> bool:
+	return (source == first and target == second) or (source == second and target == first)
+
+
+func _consume_pair(source: String, target: String) -> void:
+	_remove_item(source)
+	_remove_item(target)
 
 
 func _open_phone() -> void:
@@ -1368,6 +1466,10 @@ func _reset_game() -> void:
 
 
 func _show_modal(heading: String, body: String, actions: Array, image_path: String = "") -> void:
+	if not image_path.is_empty() and ResourceLoader.exists(image_path):
+		_show_closeup(heading, body, actions, image_path)
+		return
+	_close_closeup()
 	for child in modal_actions.get_children():
 		child.queue_free()
 	modal_title.text = heading
@@ -1386,6 +1488,35 @@ func _show_modal(heading: String, body: String, actions: Array, image_path: Stri
 
 func _close_modal() -> void:
 	modal_layer.visible = false
+	_close_closeup()
+
+
+func _show_closeup(heading: String, body: String, actions: Array, image_path: String) -> void:
+	modal_layer.visible = false
+	for child in closeup_actions.get_children():
+		child.queue_free()
+	closeup_image.texture = load(image_path) as Texture2D
+	var caption := body.strip_edges()
+	if caption.is_empty():
+		caption = heading
+	closeup_caption.text = "[center]" + caption + "[/center]"
+	for action in actions:
+		var button := _make_button(str(action["label"]))
+		button.add_theme_stylebox_override("normal", _panel_style(Color(0, 0, 0, 0.76), Color(1, 1, 1, 0.38), 1))
+		button.add_theme_stylebox_override("hover", _panel_style(Color(0.08, 0.07, 0.06, 0.94), COLOR_GOLD, 2))
+		button.pressed.connect(action["callback"])
+		closeup_actions.add_child(button)
+	closeup_layer.visible = true
+	status_label.visible = false
+
+
+func _close_closeup() -> void:
+	if closeup_layer == null:
+		return
+	closeup_layer.visible = false
+	closeup_image.texture = null
+	if status_label != null:
+		status_label.visible = true
 
 
 func _save() -> void:
@@ -1430,12 +1561,14 @@ func _item_name(item: String) -> String:
 		"block_red": "빨간 기차 블록",
 		"block_yellow": "노란 기차 블록",
 		"block_blue": "파란 기차 블록",
+		"train_pair_yellow_blue": "노랑·파랑 기차 블록",
 		"repaired_train": "수리된 장난감 기차",
 		"storybook_page_1": "페이지가 빠진 동화책",
 		"storybook_page_2": "동화책 페이지 조각",
 		"completed_storybook": "완성된 동화책",
 		"mother_note": "엄마의 쪽지",
 		"empty_remote": "건전지 없는 리모컨",
+		"remote_one_battery": "건전지가 하나 든 리모컨",
 		"battery_1": "건전지",
 		"battery_2": "건전지",
 		"powered_remote": "작동하는 리모컨",
@@ -1454,6 +1587,7 @@ func _item_name(item: String) -> String:
 		,"courage_vial": "용기의 병"
 		,"will_vial": "의지의 병"
 		,"self_trust_vial": "자기 신뢰의 병"
+		,"emotion_vial_pair": "이어진 감정의 병"
 		,"heart_key": "마음의 열쇠"
 	}.get(item, item)
 
@@ -1468,12 +1602,14 @@ func _item_symbol(item: String) -> String:
 		"block_red": "R",
 		"block_yellow": "Y",
 		"block_blue": "B",
+		"train_pair_yellow_blue": "YB",
 		"repaired_train": "車",
 		"storybook_page_1": "頁",
 		"storybook_page_2": "頁",
 		"completed_storybook": "冊",
 		"mother_note": "書",
 		"empty_remote": "遥",
+		"remote_one_battery": "遥",
 		"battery_1": "＋",
 		"battery_2": "＋",
 		"powered_remote": "遥",
@@ -1492,6 +1628,7 @@ func _item_symbol(item: String) -> String:
 		,"courage_vial": "Ⅰ"
 		,"will_vial": "Ⅱ"
 		,"self_trust_vial": "Ⅲ"
+		,"emotion_vial_pair": "ⅠⅡ"
 		,"heart_key": "♢"
 	}.get(item, "·")
 
@@ -1506,12 +1643,14 @@ func _item_texture(item: String) -> Texture2D:
 		"block_red": "res://assets/items/childhood/block-red.png",
 		"block_yellow": "res://assets/items/childhood/block-yellow.png",
 		"block_blue": "res://assets/items/childhood/block-blue.png",
+		"train_pair_yellow_blue": "res://assets/items/childhood/repaired-train.png",
 		"repaired_train": "res://assets/items/childhood/repaired-train.png",
 		"storybook_page_1": "res://assets/items/childhood/storybook.png",
 		"storybook_page_2": "res://assets/items/childhood/storybook-page.png",
 		"completed_storybook": "res://assets/items/finale/sketchbook.png",
 		"mother_note": "res://assets/items/childhood/mother-note.png",
 		"empty_remote": "res://assets/items/childhood/remote-empty.png",
+		"remote_one_battery": "res://assets/items/childhood/remote-empty.png",
 		"battery_1": "res://assets/items/childhood/battery.png",
 		"battery_2": "res://assets/items/childhood/battery.png",
 		"powered_remote": "res://assets/items/childhood/remote-powered.png",
@@ -1530,6 +1669,7 @@ func _item_texture(item: String) -> Texture2D:
 		"courage_vial": "res://assets/items/finale/emotion-vials.png",
 		"will_vial": "res://assets/items/school/will-vial.png",
 		"self_trust_vial": "res://assets/items/adult/self-trust-vial.png",
+		"emotion_vial_pair": "res://assets/items/finale/emotion-vials.png",
 		"heart_key": "res://assets/items/finale/heart-key.png"
 	}
 	var path := str(paths.get(item, ""))
@@ -1574,7 +1714,7 @@ func _make_arrow_button(glyph: String, accessible_name: String) -> Button:
 
 
 func _make_inventory_button(glyph: String, accessible_name: String) -> Button:
-	var button := Button.new()
+	var button := InventoryItemButtonScript.new() as InventoryItemButton
 	button.text = glyph
 	button.tooltip_text = accessible_name
 	button.accessibility_name = accessible_name
@@ -1635,12 +1775,12 @@ func _panel_style(color: Color, border: Color, width: int) -> StyleBoxFlat:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("close_popup") and modal_layer.visible:
+	if event.is_action_pressed("close_popup") and (modal_layer.visible or closeup_layer.visible):
 		_close_modal()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("move_left") and not modal_layer.visible:
+	elif event.is_action_pressed("move_left") and not modal_layer.visible and not closeup_layer.visible:
 		_move_left()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("move_right") and not modal_layer.visible:
+	elif event.is_action_pressed("move_right") and not modal_layer.visible and not closeup_layer.visible:
 		_move_right()
 		get_viewport().set_input_as_handled()
