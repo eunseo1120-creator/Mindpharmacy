@@ -2,6 +2,7 @@ extends Control
 
 const RoomArt = preload("res://scripts/room_art.gd")
 const SaveManagerScript = preload("res://scripts/save_manager.gd")
+const UI_FONT = preload("res://assets/fonts/NotoSansKR-Variable.ttf")
 
 const COLOR_INK := Color("#211a18")
 const COLOR_PANEL := Color("#2c2521")
@@ -49,6 +50,10 @@ func _ready() -> void:
 
 
 func _build_ui() -> void:
+	var ui_theme := Theme.new()
+	ui_theme.default_font = UI_FONT
+	theme = ui_theme
+
 	var backdrop := ColorRect.new()
 	backdrop.color = Color("#050505")
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
