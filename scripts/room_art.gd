@@ -63,7 +63,9 @@ func _get_generated_texture() -> Texture2D:
 	elif scene_id.begins_with("pharmacy_"):
 		path = "res://assets/backgrounds/pharmacy_v2/" + scene_id.trim_prefix("pharmacy_") + ".png"
 	elif scene_id.begins_with("childhood_"):
-		if scene_id == "childhood_back" and solved_flags.get("childhood_complete", false):
+		if scene_id == "childhood_front" and solved_flags.get("alphabet_book_collected", false):
+			path = "res://assets/backgrounds/childhood/front-no-x-book.png"
+		elif scene_id == "childhood_back" and solved_flags.get("childhood_complete", false):
 			path = "res://assets/backgrounds/childhood/back-open.jpg"
 		else:
 			path = "res://assets/backgrounds/childhood/" + scene_id.trim_prefix("childhood_") + ".png"

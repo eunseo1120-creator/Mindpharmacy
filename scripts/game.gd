@@ -1839,7 +1839,7 @@ func _item_texture_path(item: String) -> String:
 		"block_blue": "res://assets/items/childhood/block-blue.png",
 		"train_pair_yellow_blue": "res://assets/items/childhood/train-pair-yellow-blue.png",
 		"repaired_train": "res://assets/items/childhood/repaired-train-blocks.png",
-		"alphabet_book": "res://assets/closeups/childhood/alphabet-book-floor.png",
+		"alphabet_book": "res://assets/items/childhood/alphabet-x-book.png",
 		"picture_diary": "res://assets/closeups/childhood/diary/cover.png",
 		"storybook_page_3": "res://assets/items/childhood/storybook-page.png",
 		"storybook_page_4": "res://assets/items/childhood/storybook-page.png",

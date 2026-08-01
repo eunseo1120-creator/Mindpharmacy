@@ -34,6 +34,15 @@ func _run() -> void:
 	game._inspect_floor_book()
 	game._collect_alphabet_book()
 	_expect(game.inventory.has("alphabet_book"), "바닥에서 알파벳 X 책을 얻는다")
+	game.room_art.set_scene("childhood_front", game.flags)
+	_expect(
+		game.room_art._get_generated_texture() == load("res://assets/backgrounds/childhood/front-no-x-book.png"),
+		"X 책 획득 후 정면 방에서 책이 사라진 배경을 사용한다"
+	)
+	_expect(
+		game._item_texture_path("alphabet_book") == "res://assets/items/childhood/alphabet-x-book.png",
+		"알파벳 X 책은 투명 배경의 인벤토리 에셋을 사용한다"
+	)
 	game._inspect_alphabet_bookcase()
 	game._insert_alphabet_book()
 	game._collect_picture_diary()
