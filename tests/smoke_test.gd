@@ -174,6 +174,20 @@ func _run() -> void:
 	game._toggle_developer_mode()
 	_expect(not game.developer_mode, "개발자 모드를 다시 끈다")
 
+	game.inventory.assign([
+		"picture_diary", "completed_storybook", "courage", "door_key",
+		"phone", "school_key", "adult_key"
+	])
+	game._refresh_inventory()
+	await process_frame
+	var inventory_scroll := game.inventory_list.get_parent() as ScrollContainer
+	_expect(
+		game.inventory_list.get_child_count() == 7
+		and inventory_scroll != null
+		and inventory_scroll.get_v_scroll_bar().max_value > inventory_scroll.size.y,
+		"인벤토리는 6칸을 표시하고 7번째 아이템부터 스크롤한다"
+	)
+
 	if failures == 0:
 		print("마음 약방 전체 챕터 스모크 테스트 통과")
 		quit(0)

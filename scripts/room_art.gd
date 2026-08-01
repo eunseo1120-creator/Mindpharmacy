@@ -24,7 +24,7 @@ func set_scene(next_scene_id: String, flags: Dictionary) -> void:
 func _draw() -> void:
 	var size := get_rect().size
 	draw_rect(Rect2(Vector2.ZERO, size), Color.BLACK)
-	var inner := Rect2(size * Vector2(0.018, 0.025), size * Vector2(0.964, 0.95))
+	var inner := Rect2(size * Vector2(0.01, 0.014), size * Vector2(0.98, 0.972))
 	_draw_room(inner)
 	_draw_grain(inner)
 	_draw_soft_edge(inner)
@@ -357,14 +357,6 @@ func _draw_soft_edge(rect: Rect2) -> void:
 			false,
 			5.0
 		)
-	var corner_radius := 26.0
-	for corner in [
-		rect.position,
-		Vector2(rect.end.x, rect.position.y),
-		rect.end,
-		Vector2(rect.position.x, rect.end.y)
-	]:
-		draw_circle(corner, corner_radius, Color(0, 0, 0, 0.5))
 
 
 func _glow_box(color: Color) -> StyleBoxFlat:

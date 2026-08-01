@@ -77,29 +77,33 @@ func _build_ui() -> void:
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(backdrop)
 
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.offset_top = 14
-	center.offset_bottom = -14
-	add_child(center)
+	var screen_margin := MarginContainer.new()
+	screen_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen_margin.add_theme_constant_override("margin_left", 24)
+	screen_margin.add_theme_constant_override("margin_right", 24)
+	screen_margin.add_theme_constant_override("margin_top", 22)
+	screen_margin.add_theme_constant_override("margin_bottom", 68)
+	add_child(screen_margin)
 
 	var body := HBoxContainer.new()
-	body.custom_minimum_size = Vector2(1060, 640)
-	body.add_theme_constant_override("separation", 20)
-	center.add_child(body)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.alignment = BoxContainer.ALIGNMENT_CENTER
+	body.add_theme_constant_override("separation", 16)
+	screen_margin.add_child(body)
 
 	var aspect := AspectRatioContainer.new()
 	aspect.ratio = 4.0 / 3.0
 	aspect.stretch_mode = AspectRatioContainer.STRETCH_FIT
 	aspect.alignment_horizontal = AspectRatioContainer.ALIGNMENT_CENTER
 	aspect.alignment_vertical = AspectRatioContainer.ALIGNMENT_CENTER
-	aspect.custom_minimum_size = Vector2(850, 638)
+	aspect.custom_minimum_size = Vector2(720, 540)
 	aspect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	aspect.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(aspect)
 
 	var scene_root := Control.new()
-	scene_root.custom_minimum_size = Vector2(850, 638)
+	scene_root.custom_minimum_size = Vector2(720, 540)
 	aspect.add_child(scene_root)
 
 	room_art = RoomArt.new()
@@ -128,24 +132,24 @@ func _build_ui() -> void:
 	scene_root.add_child(right_button)
 
 	var inventory_margin := MarginContainer.new()
-	inventory_margin.custom_minimum_size.x = 76
-	inventory_margin.add_theme_constant_override("margin_left", 4)
-	inventory_margin.add_theme_constant_override("margin_right", 4)
-	inventory_margin.add_theme_constant_override("margin_top", 22)
-	inventory_margin.add_theme_constant_override("margin_bottom", 22)
+	inventory_margin.custom_minimum_size.x = 104
+	inventory_margin.add_theme_constant_override("margin_left", 6)
+	inventory_margin.add_theme_constant_override("margin_right", 6)
 	body.add_child(inventory_margin)
 
-	var inventory_column := VBoxContainer.new()
-	inventory_column.add_theme_constant_override("separation", 7)
-	inventory_margin.add_child(inventory_column)
+	var inventory_center := CenterContainer.new()
+	inventory_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inventory_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	inventory_margin.add_child(inventory_center)
 	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(92, 542)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	inventory_column.add_child(scroll)
+	scroll.tooltip_text = "소지품이 6개를 넘으면 위아래로 스크롤할 수 있습니다."
+	inventory_center.add_child(scroll)
 	inventory_list = VBoxContainer.new()
 	inventory_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inventory_list.add_theme_constant_override("separation", 7)
+	inventory_list.add_theme_constant_override("separation", 10)
 	scroll.add_child(inventory_list)
 
 	var settings_button := Button.new()
@@ -1916,8 +1920,8 @@ func _make_inventory_button(glyph: String, accessible_name: String) -> Button:
 	button.text = glyph
 	button.tooltip_text = accessible_name
 	button.accessibility_name = accessible_name
-	button.custom_minimum_size = Vector2(62, 62)
-	button.add_theme_font_size_override("font_size", 20)
+	button.custom_minimum_size = Vector2(82, 82)
+	button.add_theme_font_size_override("font_size", 24)
 	button.add_theme_color_override("font_color", Color("#3b332b"))
 	button.add_theme_color_override("font_hover_color", Color("#1d1916"))
 	button.add_theme_stylebox_override("normal", _inventory_style(Color("#d7c9a9"), Color("#f0e8d4"), 2))
