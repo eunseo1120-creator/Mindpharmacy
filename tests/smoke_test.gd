@@ -30,6 +30,9 @@ func _run() -> void:
 	_expect(ResourceLoader.exists("res://assets/audio/music/childhood-ambient.ogg"), "유년기 배경음악을 불러온다")
 	_expect(ResourceLoader.exists("res://assets/audio/sfx/paper-pickup.ogg"), "종이 획득 효과음을 불러온다")
 	_expect(ResourceLoader.exists("res://assets/audio/sfx/door-open.ogg"), "문 열림 효과음을 불러온다")
+	_expect(game._item_texture_path("courage") == "res://assets/items/finale/courage-vial.png", "용기는 전체 시트가 아닌 단일 병 에셋을 사용한다")
+	_expect(game._item_texture_path("school_key") == "res://assets/items/school/school-key.png", "교실 열쇠는 단일 에셋을 사용한다")
+	_expect(game._item_texture_path("phone") == "res://assets/items/adult/phone.png", "휴대전화는 단일 에셋을 사용한다")
 
 	game._reset_game()
 	game._open_letter()

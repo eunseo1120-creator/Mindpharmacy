@@ -1944,7 +1944,7 @@ func _item_texture_path(item: String) -> String:
 		"battery_1": "res://assets/items/childhood/battery.png",
 		"battery_2": "res://assets/items/childhood/battery.png",
 		"powered_remote": "res://assets/items/childhood/remote-powered.png",
-		"courage": "res://assets/items/finale/emotion-vials.png",
+		"courage": "res://assets/items/finale/courage-vial.png",
 		"door_key": "res://assets/items/school/school-key.png",
 		"clear_tape": "res://assets/items/school/clear-tape.png",
 		"torn_shoe": "res://assets/items/school/torn-shoe.png",
@@ -1956,10 +1956,10 @@ func _item_texture_path(item: String) -> String:
 		"phone": "res://assets/items/adult/phone.png",
 		"self_trust": "res://assets/items/adult/self-trust-vial.png",
 		"adult_key": "res://assets/items/adult/apartment-key.png",
-		"courage_vial": "res://assets/items/finale/emotion-vials.png",
+		"courage_vial": "res://assets/items/finale/courage-vial.png",
 		"will_vial": "res://assets/items/school/will-vial.png",
 		"self_trust_vial": "res://assets/items/adult/self-trust-vial.png",
-		"emotion_vial_pair": "res://assets/items/finale/emotion-vials.png",
+		"emotion_vial_pair": "res://assets/items/finale/emotion-vial-pair.png",
 		"heart_key": "res://assets/items/finale/heart-key.png"
 	}
 	return str(paths.get(item, ""))
