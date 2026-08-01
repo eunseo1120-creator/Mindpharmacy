@@ -3,6 +3,7 @@ extends Control
 const RoomArt = preload("res://scripts/room_art.gd")
 const SaveManagerScript = preload("res://scripts/save_manager.gd")
 const InventoryItemButtonScript = preload("res://scripts/inventory_item_button.gd")
+const AudioDirectorScript = preload("res://scripts/audio_director.gd")
 const UI_FONT = preload("res://assets/fonts/NotoSansKR-Variable.ttf")
 
 const COLOR_INK := Color("#211a18")
@@ -31,6 +32,7 @@ var shoe_input := ""
 var diary_page := 0
 var storybook_page := 0
 var developer_mode := false
+var audio_director: AudioDirector
 
 var room_art: Control
 var hotspot_layer: Control
@@ -54,6 +56,8 @@ var modal_actions: VBoxContainer
 
 func _ready() -> void:
 	set_process_unhandled_input(true)
+	audio_director = AudioDirectorScript.new()
+	add_child(audio_director)
 	_build_ui()
 	var saved := SaveManagerScript.load_game()
 	if not saved.is_empty():
@@ -66,6 +70,8 @@ func _ready() -> void:
 		_set_status("저장된 기억에서 이어갑니다.")
 	else:
 		_set_status("빛나는 편지함을 눌러 보세요.")
+	audio_director.set_music_enabled(bool(flags.get("music_enabled", true)))
+	audio_director.set_sfx_enabled(bool(flags.get("sfx_enabled", true)))
 	_render()
 
 
@@ -166,6 +172,7 @@ func _build_ui() -> void:
 	settings_button.add_theme_stylebox_override("normal", _transparent_style())
 	settings_button.add_theme_stylebox_override("hover", _soft_button_style(Color(1, 1, 1, 0.12)))
 	settings_button.add_theme_stylebox_override("pressed", _soft_button_style(Color(1, 1, 1, 0.2)))
+	settings_button.pressed.connect(_play_sfx.bind("ui_click", -5.0))
 	settings_button.pressed.connect(_open_settings)
 	add_child(settings_button)
 
@@ -247,6 +254,7 @@ func _build_closeup(scene_root: Control) -> void:
 	closeup_back_button.anchor_right = 0.54
 	closeup_back_button.anchor_bottom = 1.0
 	closeup_back_button.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
+	closeup_back_button.pressed.connect(_play_sfx.bind("ui_back"))
 	closeup_back_button.pressed.connect(_close_closeup)
 	closeup_layer.add_child(closeup_back_button)
 
@@ -302,6 +310,7 @@ func _build_modal() -> void:
 func _render() -> void:
 	var scene_id: String = current_place + "_" + DIRECTIONS[direction_index]
 	room_art.set_scene(scene_id, flags)
+	audio_director.set_place(current_place)
 	left_button.visible = true
 	right_button.visible = true
 	_build_hotspots()
@@ -428,6 +437,7 @@ func _add_hotspot(label_text: String, normalized_rect: Rect2, callback: Callable
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("focus", hover)
 	button.add_theme_stylebox_override("pressed", hover)
+	button.pressed.connect(_play_sfx.bind("ui_click", -7.0))
 	button.pressed.connect(callback)
 	hotspot_layer.add_child(button)
 
@@ -458,6 +468,7 @@ func _refresh_inventory() -> void:
 
 
 func _open_letter() -> void:
+	_play_sfx("paper_pickup", -2.0)
 	if flags.get("adult_medicine_brewed", false):
 		_enter_truth()
 	elif flags.get("school_medicine_brewed", false):
@@ -482,6 +493,7 @@ func _show_letter(number: int) -> void:
 
 
 func _enter_childhood() -> void:
+	_play_sfx("book_open", -1.0)
 	_close_modal()
 	current_place = "childhood"
 	direction_index = 0
@@ -515,12 +527,14 @@ func _enter_truth() -> void:
 
 
 func _move_left() -> void:
+	_play_sfx("room_turn", -4.0)
 	direction_index = wrapi(direction_index - 1, 0, DIRECTIONS.size())
 	_set_status(_direction_name())
 	_render()
 
 
 func _move_right() -> void:
+	_play_sfx("room_turn", -4.0)
 	direction_index = wrapi(direction_index + 1, 0, DIRECTIONS.size())
 	_set_status(_direction_name())
 	_render()
@@ -536,12 +550,14 @@ func _inspect_dresser() -> void:
 
 
 func _open_dresser() -> void:
+	_play_sfx("drawer_open", -1.0)
 	flags["dresser_open"] = true
 	_show_interactive_closeup("열린 서랍", "그림 속 바늘을 눌러 집어 든다.", "res://assets/closeups/childhood/dresser-open.png", [{"label": "바늘", "rect": Rect2(0.03, 0.1, 0.27, 0.28), "callback": _collect_needle}])
 	_save()
 
 
 func _collect_needle() -> void:
+	_play_sfx("metal_click", -3.0)
 	_add_item("needle")
 	flags["needle_collected"] = true
 	_set_status("서랍에서 작은 바늘을 얻었다.")
@@ -559,12 +575,14 @@ func _inspect_wardrobe() -> void:
 
 
 func _open_wardrobe() -> void:
+	_play_sfx("wardrobe_open", -2.0)
 	flags["wardrobe_open"] = true
 	_show_interactive_closeup("열린 옷장", "니트 아래로 늘어진 실을 눌러 집어 든다.", "res://assets/closeups/childhood/wardrobe-open.png", [{"label": "풀린 실", "rect": Rect2(0.48, 0.38, 0.31, 0.52), "callback": _collect_thread}])
 	_save()
 
 
 func _collect_thread() -> void:
+	_play_sfx("item_pickup", -3.0)
 	_add_item("thread")
 	flags["thread_collected"] = true
 	_set_status("올이 풀린 니트에서 실을 얻었다.")
@@ -589,6 +607,7 @@ func _attempt_sew_bear() -> void:
 
 
 func _sew_bear() -> void:
+	_play_sfx("sewing", -1.0)
 	_remove_item("sewing_kit")
 	_remove_item("torn_bear")
 	_add_item("repaired_bear")
@@ -605,6 +624,7 @@ func _sew_bear() -> void:
 
 
 func _collect_blocks() -> void:
+	_play_sfx("wood_connect", -2.0)
 	_add_item("block_red")
 	_add_item("block_yellow")
 	_add_item("block_blue")
@@ -614,6 +634,7 @@ func _collect_blocks() -> void:
 
 
 func _inspect_train_photo() -> void:
+	_play_sfx("paper_pickup", -4.0)
 	flags["train_order_seen"] = true
 	_show_modal(
 		"액자 속 장난감 기차",
@@ -636,6 +657,7 @@ func _place_train_on_rail() -> void:
 		_set_status("레일 위를 달릴 수 있는 수리된 장난감 기차가 필요하다.")
 		return
 	_remove_item("repaired_train")
+	_play_sfx("train_run", -1.0)
 	flags["train_repaired"] = true
 	flags["storybook_page_4_revealed"] = true
 	selected_item = ""
@@ -646,6 +668,7 @@ func _place_train_on_rail() -> void:
 
 
 func _collect_storybook_page_4() -> void:
+	_play_sfx("paper_pickup", -2.0)
 	_add_item("storybook_page_4")
 	flags["storybook_page_4_found"] = true
 	_set_status("동화책의 네 번째 페이지를 인벤토리에 넣었다.")
@@ -668,6 +691,7 @@ func _place_bear() -> void:
 		_set_status("인벤토리에서 꼬매진 곰인형을 먼저 선택하세요.")
 		return
 	_remove_item("repaired_bear")
+	_play_sfx("soft_place", -2.0)
 	selected_item = ""
 	flags["bear_placed_under_bed"] = true
 	_show_interactive_closeup("침대 위의 종이", "곰인형을 놓자 침대 위에 페이지가 떨어졌다. 종이를 눌러 집어 든다.", "res://assets/closeups/childhood/bed-storybook.png", [{"label": "동화책 세 번째 페이지", "rect": Rect2(0.34, 0.24, 0.4, 0.46), "callback": _collect_storybook_page_3}])
@@ -675,6 +699,7 @@ func _place_bear() -> void:
 
 
 func _collect_storybook_page_3() -> void:
+	_play_sfx("paper_pickup", -2.0)
 	_add_item("storybook_page_3")
 	flags["storybook_page_3_found"] = true
 	_show_closeup("침대 밑의 곰인형", "동화책의 세 번째 페이지를 인벤토리에 넣었다.", [], "res://assets/closeups/childhood/bed-bear-under.png")
@@ -715,6 +740,7 @@ func _show_shoe_keypad() -> void:
 
 
 func _shoe_digit(digit: String) -> void:
+	_play_sfx("keypad_tick", -4.0)
 	if shoe_input.length() >= 3:
 		shoe_input = ""
 	shoe_input += digit
@@ -722,6 +748,7 @@ func _shoe_digit(digit: String) -> void:
 	if shoe_input.length() != 3:
 		return
 	if shoe_input == "240" and flags.get("shoe_size_seen", false):
+		_play_sfx("lock_latch", -1.0)
 		flags["shoe_cabinet_unlocked"] = true
 		_show_interactive_closeup("양쪽 문이 열린다", "왼쪽 칸의 접힌 쪽지를 누른다.", "res://assets/closeups/childhood/shoe-cabinet-open.png", [{"label": "엄마의 쪽지", "rect": Rect2(0.08, 0.19, 0.42, 0.52), "callback": _reveal_mother_note}])
 		_set_status("240을 입력해 신발장을 열었다.")
@@ -731,6 +758,7 @@ func _shoe_digit(digit: String) -> void:
 
 
 func _reveal_mother_note() -> void:
+	_play_sfx("paper_pickup", -2.0)
 	_add_item("mother_note")
 	flags["mother_note_collected"] = true
 	_show_closeup(
@@ -753,12 +781,14 @@ func _inspect_tv_drawer() -> void:
 
 
 func _open_tv_drawer() -> void:
+	_play_sfx("drawer_open", -1.0)
 	flags["tv_drawer_open"] = true
 	_show_interactive_closeup("열린 TV 서랍", "그림 속 리모컨을 눌러 집어 든다.", "res://assets/closeups/childhood/tv-drawer-open.png", [{"label": "건전지 없는 리모컨", "rect": Rect2(0.31, 0.47, 0.42, 0.3), "callback": _collect_empty_remote}])
 	_save()
 
 
 func _collect_empty_remote() -> void:
+	_play_sfx("item_pickup", -2.0)
 	_add_item("empty_remote")
 	flags["empty_remote_collected"] = true
 	_set_status("건전지 없는 리모컨을 얻었다.")
@@ -777,6 +807,7 @@ func _inspect_sofa() -> void:
 
 
 func _lift_sofa_cushion() -> void:
+	_play_sfx("soft_place", -3.0)
 	flags["sofa_cushion_lifted"] = true
 	_show_interactive_closeup("쿠션 아래", "그림 속 건전지를 눌러 집어 든다.", "res://assets/closeups/childhood/sofa-cushion-lifted.png", [{"label": "건전지", "rect": Rect2(0.4, 0.42, 0.25, 0.2), "callback": _collect_sofa_battery}])
 	_set_status("쿠션 밑에 있는 건전지를 누르세요.")
@@ -784,6 +815,7 @@ func _lift_sofa_cushion() -> void:
 
 
 func _collect_sofa_battery() -> void:
+	_play_sfx("metal_click", -3.0)
 	_add_item("battery_1")
 	flags["sofa_battery_collected"] = true
 	_show_closeup("들린 소파 쿠션", "건전지를 인벤토리에 넣었다.", [], "res://assets/closeups/childhood/sofa-cushion-lifted-empty.jpg")
@@ -802,6 +834,7 @@ func _inspect_clock() -> void:
 
 
 func _turn_clock() -> void:
+	_play_sfx("metal_click", -3.0)
 	flags["clock_turned"] = true
 	_show_interactive_closeup("시계 뒷면", "건전지 칸의 건전지를 눌러 꺼낸다.", "res://assets/closeups/childhood/clock-back.png", [{"label": "건전지", "rect": Rect2(0.39, 0.34, 0.22, 0.33), "callback": _collect_clock_battery}])
 	_set_status("시계 뒷면의 건전지를 누르세요.")
@@ -809,6 +842,7 @@ func _turn_clock() -> void:
 
 
 func _collect_clock_battery() -> void:
+	_play_sfx("metal_click", -3.0)
 	_add_item("battery_2")
 	flags["clock_battery_collected"] = true
 	_show_closeup("시계 뒷면", "건전지를 인벤토리에 넣었다.", [], "res://assets/closeups/childhood/clock-back-empty.jpg")
@@ -833,6 +867,7 @@ func _show_volume_control() -> void:
 
 
 func _change_tv_volume(delta: int) -> void:
+	_play_sfx("tv_button", -5.0)
 	var volume := clampi(int(flags.get("tv_volume", 0)) + delta, 0, 30)
 	flags["tv_volume"] = volume
 	if volume == 14:
@@ -847,6 +882,7 @@ func _change_tv_volume(delta: int) -> void:
 
 
 func _collect_storybook_page_5() -> void:
+	_play_sfx("paper_pickup", -2.0)
 	_add_item("storybook_page_5")
 	flags["storybook_page_5_found"] = true
 	_set_status("동화책의 다섯 번째 페이지를 인벤토리에 넣었다.")
@@ -858,7 +894,9 @@ func _combine_dragged_items(source: String, target: String) -> void:
 	if source == target or not inventory.has(source) or not inventory.has(target):
 		return
 	var combined := true
+	var combine_sfx := "combine"
 	if _same_pair(source, target, "needle", "thread"):
+		combine_sfx = "sewing"
 		_consume_pair(source, target)
 		_add_item("sewing_kit")
 		flags["sewing_kit_made"] = true
@@ -868,11 +906,13 @@ func _combine_dragged_items(source: String, target: String) -> void:
 			_set_status("블록의 순서를 알려 주는 단서를 먼저 찾아야 한다.")
 			combined = false
 		else:
+			combine_sfx = "wood_connect"
 			_consume_pair(source, target)
 			_add_item("train_pair_yellow_blue")
 			_show_closeup("연결된 기차 블록", "노란 기관차와 파란 객차가 연결되었다.", [], "res://assets/items/childhood/train-pair-yellow-blue.png")
 			_set_status("노란 블록과 파란 블록을 연결했다. 마지막 객차가 필요하다.")
 	elif _same_pair(source, target, "train_pair_yellow_blue", "block_red"):
+		combine_sfx = "wood_connect"
 		_consume_pair(source, target)
 		_add_item("repaired_train")
 		flags["train_blocks_combined"] = true
@@ -882,6 +922,7 @@ func _combine_dragged_items(source: String, target: String) -> void:
 		(source == "empty_remote" and target in ["battery_1", "battery_2"])
 		or (target == "empty_remote" and source in ["battery_1", "battery_2"])
 	):
+		combine_sfx = "metal_click"
 		_consume_pair(source, target)
 		_add_item("remote_one_battery")
 		_set_status("리모컨에 건전지 한 개를 넣었다. 한 개가 더 필요하다.")
@@ -889,12 +930,14 @@ func _combine_dragged_items(source: String, target: String) -> void:
 		(source == "remote_one_battery" and target in ["battery_1", "battery_2"])
 		or (target == "remote_one_battery" and source in ["battery_1", "battery_2"])
 	):
+		combine_sfx = "tv_button"
 		_consume_pair(source, target)
 		_add_item("powered_remote")
 		flags["remote_powered"] = true
 		_show_modal("작동하는 리모컨", "건전지 두 개를 넣자 작은 전원등이 켜졌다.", [], "res://assets/closeups/childhood/remote-powered.png")
 		_set_status("건전지가 들어간 리모컨을 얻었다.")
 	elif source in ["storybook_page_3", "storybook_page_4", "storybook_page_5"] and target in ["storybook_page_3", "storybook_page_4", "storybook_page_5"]:
+		combine_sfx = "paper_pickup"
 		_consume_pair(source, target)
 		_add_item("storybook_page_pair")
 		_set_status("찾은 동화책 페이지 두 장을 맞췄다. 마지막 한 장이 더 필요하다.")
@@ -902,12 +945,14 @@ func _combine_dragged_items(source: String, target: String) -> void:
 		(source == "storybook_page_pair" and target in ["storybook_page_3", "storybook_page_4", "storybook_page_5"])
 		or (target == "storybook_page_pair" and source in ["storybook_page_3", "storybook_page_4", "storybook_page_5"])
 	):
+		combine_sfx = "book_open"
 		_consume_pair(source, target)
 		_add_item("completed_storybook")
 		flags["storybook_completed"] = true
 		_set_status("세 페이지를 모두 맞춰 ‘점박이 곰과 하얀 곰’을 완성했다.")
 		_refresh_inventory()
 		_save()
+		_play_sfx(combine_sfx, -1.0)
 		_open_storybook(0)
 		return
 	elif _same_pair(source, target, "torn_shoe", "clear_tape"):
@@ -926,6 +971,7 @@ func _combine_dragged_items(source: String, target: String) -> void:
 			_set_status("세 감정이 어떤 의미인지 기록을 먼저 확인해야 한다.")
 			combined = false
 		else:
+			combine_sfx = "crystal"
 			_consume_pair(source, target)
 			_add_item("emotion_vial_pair")
 			_set_status("두 감정의 병이 하나로 이어졌다. 마지막 병을 더해 보자.")
@@ -933,6 +979,7 @@ func _combine_dragged_items(source: String, target: String) -> void:
 		(source == "emotion_vial_pair" and target in ["courage_vial", "will_vial", "self_trust_vial"])
 		or (target == "emotion_vial_pair" and source in ["courage_vial", "will_vial", "self_trust_vial"])
 	):
+		combine_sfx = "crystal"
 		_consume_pair(source, target)
 		_add_item("heart_key")
 		flags["heart_key_made"] = true
@@ -942,9 +989,12 @@ func _combine_dragged_items(source: String, target: String) -> void:
 		combined = false
 		_set_status("이 두 물건은 서로 맞지 않는다.")
 	if combined:
+		_play_sfx(combine_sfx, -1.0)
 		selected_item = ""
 		_refresh_inventory()
 		_save()
+	else:
+		_play_sfx("error", -6.0)
 
 
 func _same_pair(source: String, target: String, first: String, second: String) -> bool:
@@ -961,6 +1011,7 @@ func _inspect_floor_book() -> void:
 
 
 func _collect_alphabet_book() -> void:
+	_play_sfx("book_open", -2.0)
 	_add_item("alphabet_book")
 	flags["alphabet_book_collected"] = true
 	_close_modal()
@@ -985,6 +1036,7 @@ func _insert_alphabet_book() -> void:
 		_set_status("빈자리에 맞는 책이 필요하다.")
 		return
 	_remove_item("alphabet_book")
+	_play_sfx("soft_place", -3.0)
 	flags["diary_revealed"] = true
 	selected_item = ""
 	_show_interactive_closeup("숨겨진 그림일기", "그림 속 일기장을 눌러 꺼낸다.", "res://assets/closeups/childhood/alphabet-bookcase-diary.png", [{"label": "그림일기", "rect": Rect2(0.3, 0.42, 0.42, 0.42), "callback": _collect_picture_diary}])
@@ -994,6 +1046,7 @@ func _insert_alphabet_book() -> void:
 
 
 func _collect_picture_diary() -> void:
+	_play_sfx("book_open", -2.0)
 	_add_item("picture_diary")
 	flags["diary_collected"] = true
 	_set_status("그림일기를 얻었다. 소지품에서 여러 번 펼쳐 단서를 확인할 수 있다.")
@@ -1003,6 +1056,7 @@ func _collect_picture_diary() -> void:
 
 
 func _open_diary(page: int = 0) -> void:
+	_play_sfx("page_turn", -4.0)
 	diary_page = clampi(page, 0, DIARY_PAGE_COUNT)
 	flags["diary_page_%02d_seen" % diary_page] = true
 	var image_path := "res://assets/closeups/childhood/diary/cover.png" if diary_page == 0 else "res://assets/closeups/childhood/diary/page-%02d.png" % diary_page
@@ -1034,6 +1088,7 @@ func _diary_caption(page: int) -> String:
 
 
 func _open_storybook(page: int = 0) -> void:
+	_play_sfx("page_turn", -4.0)
 	storybook_page = clampi(page, 0, STORYBOOK_PAGES.size())
 	var hotspots: Array = []
 	if storybook_page > 0:
@@ -1050,6 +1105,7 @@ func _open_storybook(page: int = 0) -> void:
 
 
 func _open_phone() -> void:
+	_play_sfx("metal_click", -4.0)
 	phone_input = ""
 	_show_closeup("구형 다이얼 전화기", "[font_size=28]— — — —[/font_size]\n다이얼의 숫자 구멍을 차례로 누른다.", [], "res://assets/items/childhood/rotary-phone.png")
 	var positions := {
@@ -1063,6 +1119,7 @@ func _open_phone() -> void:
 
 
 func _dial_digit(digit: String) -> void:
+	_play_sfx("metal_click", -3.0)
 	if phone_input.length() >= 4:
 		phone_input = ""
 	phone_input += digit
@@ -1070,6 +1127,7 @@ func _dial_digit(digit: String) -> void:
 	closeup_caption.text = "[center][font_size=30]" + display + "[/font_size]\n다이얼의 숫자 구멍을 차례로 누른다.[/center]"
 	if phone_input.length() == 4:
 		if phone_input == "1366" and inventory.has("completed_storybook") and flags.get("storybook_code_seen", false):
+			_play_sfx("crystal", 1.0)
 			_add_item("courage")
 			_add_item("door_key")
 			flags["phone_code_entered"] = true
@@ -1085,9 +1143,12 @@ func _dial_digit(digit: String) -> void:
 
 func _use_door() -> void:
 	if selected_item != "door_key":
+		_play_sfx("error", -4.0)
 		_set_status("닫힌 문에는 작은 열쇠구멍이 있다.")
 		return
 	_remove_item("door_key")
+	_play_sfx("lock_latch", 0.0)
+	audio_director.play_sfx_after("door_open", 0.18, 0.0)
 	flags["childhood_complete"] = true
 	flags["chapter_returned"] = true
 	selected_item = ""
@@ -1279,6 +1340,7 @@ func _use_final_door() -> void:
 
 
 func _return_to_pharmacy() -> void:
+	_play_sfx("door_open", -4.0)
 	_close_modal()
 	current_place = "pharmacy"
 	direction_index = 0
@@ -1288,6 +1350,7 @@ func _return_to_pharmacy() -> void:
 
 func _brew_medicine() -> void:
 	if inventory.has("courage"):
+		_play_sfx("potion", 0.0)
 		_remove_item("courage")
 		_add_item("courage_vial")
 		flags["medicine_brewed"] = true
@@ -1295,6 +1358,7 @@ func _brew_medicine() -> void:
 		_show_modal("경계를 두르는 물약", "[center]용기의 눈물이 금빛 막이 된다.\n두려움이 없어지는 약이 아니라,\n도움을 청할 때까지 나를 지켜 주는 약이다.[/center]", [])
 		_set_status("두 번째 편지가 은은하게 빛난다.")
 	elif inventory.has("will"):
+		_play_sfx("potion", 0.0)
 		_remove_item("will")
 		_add_item("will_vial")
 		flags["school_medicine_brewed"] = true
@@ -1302,6 +1366,7 @@ func _brew_medicine() -> void:
 		_show_modal("고요를 고르는 솜", "[center]굳은 의지가 작은 흰 솜으로 피어난다.\n모든 소리를 막는 대신,\n어떤 목소리를 믿을지 고를 수 있게 한다.[/center]", [])
 		_set_status("마지막 편지가 남았다.")
 	elif inventory.has("self_trust"):
+		_play_sfx("potion", 0.0)
 		_remove_item("self_trust")
 		_add_item("self_trust_vial")
 		flags["adult_medicine_brewed"] = true
@@ -1441,6 +1506,14 @@ func _open_settings() -> void:
 	var actions: Array = [
 		{"label": "힌트 보기", "callback": _show_hint},
 		{
+			"label": "배경음악 끄기" if bool(flags.get("music_enabled", true)) else "배경음악 켜기",
+			"callback": _toggle_music
+		},
+		{
+			"label": "효과음 끄기" if bool(flags.get("sfx_enabled", true)) else "효과음 켜기",
+			"callback": _toggle_sfx
+		},
+		{
 			"label": "개발자 모드 끄기" if developer_mode else "개발자 모드 켜기",
 			"callback": _toggle_developer_mode
 		}
@@ -1454,6 +1527,20 @@ func _open_settings() -> void:
 		"[center]게임 진행은 자동으로 저장됩니다." + developer_status + "[/center]",
 		actions
 	)
+
+
+func _toggle_music() -> void:
+	flags["music_enabled"] = not bool(flags.get("music_enabled", true))
+	audio_director.set_music_enabled(bool(flags["music_enabled"]))
+	_save()
+	_open_settings()
+
+
+func _toggle_sfx() -> void:
+	flags["sfx_enabled"] = not bool(flags.get("sfx_enabled", true))
+	audio_director.set_sfx_enabled(bool(flags["sfx_enabled"]))
+	_save()
+	_open_settings()
 
 
 func _toggle_developer_mode() -> void:
@@ -1584,11 +1671,15 @@ func _confirm_reset() -> void:
 
 
 func _reset_game() -> void:
+	var music_enabled := bool(flags.get("music_enabled", true))
+	var sfx_enabled := bool(flags.get("sfx_enabled", true))
 	SaveManagerScript.clear_save()
 	current_place = "pharmacy"
 	direction_index = 0
 	inventory.clear()
 	flags.clear()
+	flags["music_enabled"] = music_enabled
+	flags["sfx_enabled"] = sfx_enabled
 	selected_item = ""
 	phone_input = ""
 	shoe_input = ""
@@ -1665,6 +1756,7 @@ func _add_closeup_hotspot(label_text: String, normalized_rect: Rect2, callback: 
 	button.add_theme_stylebox_override("hover", _panel_style(Color(0.92, 0.75, 0.34, 0.06), Color(0.92, 0.75, 0.34, 0.62), 2))
 	button.add_theme_stylebox_override("focus", _panel_style(Color.TRANSPARENT, COLOR_GOLD, 2))
 	button.add_theme_stylebox_override("pressed", _panel_style(Color(0.92, 0.75, 0.34, 0.12), COLOR_GOLD, 2))
+	button.pressed.connect(_play_sfx.bind("ui_click", -7.0))
 	button.pressed.connect(callback)
 	closeup_hotspot_layer.add_child(button)
 
@@ -1896,6 +1988,7 @@ func _make_button(label_text: String) -> Button:
 	button.add_theme_stylebox_override("hover", _panel_style(Color("#584838"), COLOR_GOLD, 2))
 	button.add_theme_stylebox_override("pressed", _panel_style(Color("#211a18"), COLOR_GOLD, 2))
 	button.add_theme_stylebox_override("focus", _panel_style(COLOR_PANEL_LIGHT, COLOR_GOLD, 3))
+	button.pressed.connect(_play_sfx.bind("ui_click"))
 	return button
 
 
@@ -1915,6 +2008,11 @@ func _make_arrow_button(glyph: String, accessible_name: String) -> Button:
 	return button
 
 
+func _play_sfx(key: String, volume_offset_db: float = 0.0) -> void:
+	if audio_director != null:
+		audio_director.play_sfx(key, volume_offset_db)
+
+
 func _make_inventory_button(glyph: String, accessible_name: String) -> Button:
 	var button := InventoryItemButtonScript.new() as InventoryItemButton
 	button.text = glyph
@@ -1929,6 +2027,7 @@ func _make_inventory_button(glyph: String, accessible_name: String) -> Button:
 	button.add_theme_stylebox_override("pressed", _inventory_style(Color("#c6b58d"), Color("#fff8df"), 3))
 	button.add_theme_stylebox_override("focus", _inventory_style(Color("#d7c9a9"), Color.WHITE, 3))
 	button.add_theme_stylebox_override("disabled", _inventory_style(Color("#9f947d"), Color("#c8bea7"), 2))
+	button.pressed.connect(_play_sfx.bind("ui_click", -5.0))
 	return button
 
 

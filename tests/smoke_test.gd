@@ -25,11 +25,17 @@ func _run() -> void:
 	var game = packed.instantiate()
 	root.add_child(game)
 	await process_frame
+	_expect(game.audio_director != null, "오디오 디렉터를 생성한다")
+	_expect(ResourceLoader.exists("res://assets/audio/music/pharmacy-ambient.ogg"), "약방 배경음악을 불러온다")
+	_expect(ResourceLoader.exists("res://assets/audio/music/childhood-ambient.ogg"), "유년기 배경음악을 불러온다")
+	_expect(ResourceLoader.exists("res://assets/audio/sfx/paper-pickup.ogg"), "종이 획득 효과음을 불러온다")
+	_expect(ResourceLoader.exists("res://assets/audio/sfx/door-open.ogg"), "문 열림 효과음을 불러온다")
 
 	game._reset_game()
 	game._open_letter()
 	game._enter_childhood()
 	_expect(game.current_place == "childhood", "편지에서 유아기 방으로 이동한다")
+	_expect(game.audio_director.requested_music_key == "childhood", "유년기 방의 전용 배경음악으로 전환한다")
 
 	game._inspect_floor_book()
 	game._collect_alphabet_book()
@@ -191,6 +197,14 @@ func _run() -> void:
 	)
 	game._toggle_developer_mode()
 	_expect(not game.developer_mode, "개발자 모드를 다시 끈다")
+	game._toggle_music()
+	_expect(not game.flags.get("music_enabled", true), "설정에서 배경음악을 끈다")
+	game._toggle_music()
+	_expect(game.flags.get("music_enabled", false), "설정에서 배경음악을 다시 켠다")
+	game._toggle_sfx()
+	_expect(not game.flags.get("sfx_enabled", true), "설정에서 효과음을 끈다")
+	game._toggle_sfx()
+	_expect(game.flags.get("sfx_enabled", false), "설정에서 효과음을 다시 켠다")
 
 	game.inventory.assign([
 		"picture_diary", "completed_storybook", "courage", "door_key",
