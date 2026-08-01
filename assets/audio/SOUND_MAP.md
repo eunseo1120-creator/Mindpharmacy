@@ -5,8 +5,8 @@
 | 게임 파일 | 원본 팩 | 원본 파일 | 현재 사용처 |
 |---|---|---|---|
 | `ui-click.ogg` | Interface Sounds | `click_002.ogg` | 일반 버튼과 핫스폿 선택 |
-| `ui-back.ogg` | Interface Sounds | `back_002.ogg` | 클로즈업에서 방으로 돌아가기 |
-| `room-turn.ogg` | Interface Sounds | `back_003.ogg` | 방의 왼쪽·오른쪽 화면 전환 |
+| `ui-back.ogg` | Interface Sounds | `click_001.ogg` | 클로즈업에서 방으로 돌아가는 짧은 딸깍음 |
+| `room-turn.ogg` | Interface Sounds | `click_001.ogg` | 방의 왼쪽·오른쪽 화면 전환용 짧은 딸깍음 |
 | `item-pickup.ogg` | Interface Sounds | `select_004.ogg` | 일반 아이템 획득 |
 | `paper-pickup.ogg` | RPG Audio | `bookFlip1.ogg` | 쪽지와 동화책 페이지 획득 |
 | `book-open.ogg` | RPG Audio | `bookOpen.ogg` | 책과 그림일기 열기 |
@@ -27,7 +27,7 @@
 | `potion.ogg` | Interface Sounds | `glass_003.ogg` | 약방에서 감정 조제 |
 | `error.ogg` | Interface Sounds | `error_001.ogg` | 잘못된 입력·조합 |
 
-이전 방 전환음은 `scroll_003.ogg`였으며, 1초 동안 여러 틱이 연속된 소리라서 한 번 눌러도 빠르게 반복되는 것처럼 들렸습니다. 현재는 짧은 단일음인 `back_003.ogg`로 교체했고, 방 전환음에는 160ms 재생 간격 제한을 적용했습니다.
+이전 방 전환음의 연속 틱과 기계적인 뒷걸음음을 제거하고, 화면 전환과 뒤로가기를 모두 0.1초짜리 단일 `click_001.ogg`로 통일했습니다. 두 소리는 피치 변조 없이 재생되며, 방 전환음에는 160ms 재생 간격 제한을 적용했습니다.
 
 ## 배경음
 

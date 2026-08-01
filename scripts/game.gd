@@ -32,6 +32,8 @@ var shoe_input := ""
 var diary_page := 0
 var storybook_page := 0
 var developer_mode := false
+var game_started := false
+var has_saved_game := false
 var audio_director: AudioDirector
 
 var room_art: Control
@@ -52,6 +54,9 @@ var modal_title: Label
 var modal_image: TextureRect
 var modal_body: RichTextLabel
 var modal_actions: VBoxContainer
+var title_layer: Control
+var title_continue_button: Button
+var title_save_label: Label
 
 
 func _ready() -> void:
@@ -59,7 +64,9 @@ func _ready() -> void:
 	audio_director = AudioDirectorScript.new()
 	add_child(audio_director)
 	_build_ui()
+	_build_title_screen()
 	var saved := SaveManagerScript.load_game()
+	has_saved_game = not saved.is_empty()
 	if not saved.is_empty():
 		current_place = str(saved.get("current_place", "pharmacy"))
 		direction_index = int(saved.get("direction_index", 0))
@@ -73,6 +80,7 @@ func _ready() -> void:
 	audio_director.set_music_enabled(bool(flags.get("music_enabled", true)))
 	audio_director.set_sfx_enabled(bool(flags.get("sfx_enabled", true)))
 	_render()
+	_show_title_screen(saved)
 
 
 func _build_ui() -> void:
@@ -192,6 +200,179 @@ func _build_ui() -> void:
 
 	_build_closeup(scene_root)
 	_build_modal()
+
+
+func _build_title_screen() -> void:
+	title_layer = Control.new()
+	title_layer.name = "TitleScreen"
+	title_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	title_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	title_layer.z_index = 80
+	add_child(title_layer)
+
+	var background := TextureRect.new()
+	background.name = "PharmacyBackground"
+	background.texture = load("res://assets/backgrounds/pharmacy_v2/front.png") as Texture2D
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_layer.add_child(background)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0.015, 0.012, 0.01, 0.47)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_layer.add_child(dim)
+
+	var shade_gradient := Gradient.new()
+	shade_gradient.set_color(0, Color(0.012, 0.01, 0.008, 0.88))
+	shade_gradient.set_color(1, Color(0.012, 0.01, 0.008, 0.0))
+	shade_gradient.add_point(0.5, Color(0.012, 0.01, 0.008, 0.68))
+	var shade_texture := GradientTexture2D.new()
+	shade_texture.gradient = shade_gradient
+	shade_texture.width = 640
+	shade_texture.height = 16
+	shade_texture.fill_from = Vector2(0.0, 0.5)
+	shade_texture.fill_to = Vector2(1.0, 0.5)
+	var side_shade := TextureRect.new()
+	side_shade.texture = shade_texture
+	side_shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	side_shade.stretch_mode = TextureRect.STRETCH_SCALE
+	side_shade.anchor_left = 0.0
+	side_shade.anchor_top = 0.0
+	side_shade.anchor_right = 0.72
+	side_shade.anchor_bottom = 1.0
+	side_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_layer.add_child(side_shade)
+
+	var content_margin := MarginContainer.new()
+	content_margin.anchor_left = 0.07
+	content_margin.anchor_top = 0.11
+	content_margin.anchor_right = 0.43
+	content_margin.anchor_bottom = 0.91
+	content_margin.add_theme_constant_override("margin_left", 20)
+	content_margin.add_theme_constant_override("margin_right", 20)
+	content_margin.add_theme_constant_override("margin_top", 20)
+	content_margin.add_theme_constant_override("margin_bottom", 20)
+	title_layer.add_child(content_margin)
+
+	var column := VBoxContainer.new()
+	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_theme_constant_override("separation", 12)
+	content_margin.add_child(column)
+
+	var top_space := Control.new()
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(top_space)
+
+	var title := Label.new()
+	title.text = "마음 약방"
+	title.add_theme_font_size_override("font_size", 54)
+	title.add_theme_color_override("font_color", Color("#f0dfbd"))
+	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	title.add_theme_constant_override("shadow_offset_x", 2)
+	title.add_theme_constant_override("shadow_offset_y", 3)
+	column.add_child(title)
+
+	var subtitle := Label.new()
+	subtitle.text = "흩어진 기억을 따라, 마음의 처방을 완성하세요."
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	subtitle.add_theme_font_size_override("font_size", 17)
+	subtitle.add_theme_color_override("font_color", Color(0.92, 0.87, 0.76, 0.82))
+	column.add_child(subtitle)
+
+	var title_gap := Control.new()
+	title_gap.custom_minimum_size.y = 28
+	column.add_child(title_gap)
+
+	var start_button := _make_title_button("게임 시작")
+	start_button.name = "StartGameButton"
+	start_button.pressed.connect(_request_new_game_from_title)
+	column.add_child(start_button)
+
+	title_continue_button = _make_title_button("저장 구간에서 이어하기")
+	title_continue_button.name = "ContinueGameButton"
+	title_continue_button.pressed.connect(_continue_from_title)
+	column.add_child(title_continue_button)
+
+	var settings_button := _make_title_button("환경설정")
+	settings_button.name = "TitleSettingsButton"
+	settings_button.pressed.connect(_open_settings)
+	column.add_child(settings_button)
+
+	title_save_label = Label.new()
+	title_save_label.name = "SaveStatusLabel"
+	title_save_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title_save_label.add_theme_font_size_override("font_size", 14)
+	title_save_label.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7, 0.66))
+	column.add_child(title_save_label)
+
+	var bottom_space := Control.new()
+	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(bottom_space)
+
+	var auto_save := Label.new()
+	auto_save.text = "진행 상황은 이 기기에 자동으로 저장됩니다."
+	auto_save.add_theme_font_size_override("font_size", 13)
+	auto_save.add_theme_color_override("font_color", Color(0.82, 0.78, 0.7, 0.54))
+	column.add_child(auto_save)
+
+
+func _make_title_button(label_text: String) -> Button:
+	var button := Button.new()
+	button.text = label_text
+	button.custom_minimum_size = Vector2(330, 54)
+	button.add_theme_font_size_override("font_size", 18)
+	button.add_theme_color_override("font_color", Color("#ead9b9"))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_disabled_color", Color(0.72, 0.68, 0.59, 0.36))
+	button.add_theme_stylebox_override("normal", _panel_style(Color(0.07, 0.055, 0.045, 0.8), Color(0.75, 0.64, 0.45, 0.48), 1))
+	button.add_theme_stylebox_override("hover", _panel_style(Color(0.15, 0.12, 0.085, 0.93), COLOR_GOLD, 2))
+	button.add_theme_stylebox_override("pressed", _panel_style(Color(0.035, 0.028, 0.022, 0.96), COLOR_GOLD, 2))
+	button.add_theme_stylebox_override("disabled", _panel_style(Color(0.05, 0.045, 0.04, 0.52), Color(0.45, 0.42, 0.36, 0.3), 1))
+	button.pressed.connect(_play_sfx.bind("ui_click"))
+	return button
+
+
+func _show_title_screen(saved: Dictionary = {}) -> void:
+	game_started = false
+	title_layer.visible = true
+	title_continue_button.disabled = not has_saved_game
+	if has_saved_game:
+		var saved_at := str(saved.get("saved_at", ""))
+		title_save_label.text = "저장된 진행이 있습니다." if saved_at.is_empty() else "마지막 자동 저장 · " + saved_at.replace("T", " ").trim_suffix("Z")
+	else:
+		title_save_label.text = "이어갈 저장 기록이 없습니다."
+	audio_director.set_place("pharmacy")
+
+
+func _request_new_game_from_title() -> void:
+	if has_saved_game:
+		_show_modal(
+			"새 게임을 시작할까요?",
+			"현재 기기의 자동 저장 기록이 삭제됩니다.",
+			[{"label": "새로 시작", "callback": _start_new_game_from_title}]
+		)
+		return
+	_start_new_game_from_title()
+
+
+func _start_new_game_from_title() -> void:
+	game_started = true
+	has_saved_game = false
+	title_layer.visible = false
+	_reset_game()
+
+
+func _continue_from_title() -> void:
+	if not has_saved_game:
+		_start_new_game_from_title()
+		return
+	game_started = true
+	title_layer.visible = false
+	_set_status("저장된 기억에서 이어갑니다.")
+	_render()
 
 
 func _build_closeup(scene_root: Control) -> void:
@@ -315,7 +496,8 @@ func _render() -> void:
 	right_button.visible = true
 	_build_hotspots()
 	_refresh_inventory()
-	_save()
+	if game_started:
+		_save()
 
 
 func _build_hotspots() -> void:
@@ -1503,6 +1685,22 @@ func _show_hint() -> void:
 
 
 func _open_settings() -> void:
+	if not game_started:
+		_show_modal(
+			"환경설정",
+			"[center]배경음악과 효과음을 각각 조절할 수 있습니다.[/center]",
+			[
+				{
+					"label": "배경음악 끄기" if bool(flags.get("music_enabled", true)) else "배경음악 켜기",
+					"callback": _toggle_music
+				},
+				{
+					"label": "효과음 끄기" if bool(flags.get("sfx_enabled", true)) else "효과음 켜기",
+					"callback": _toggle_sfx
+				}
+			]
+		)
+		return
 	var actions: Array = [
 		{"label": "힌트 보기", "callback": _show_hint},
 		{
@@ -1532,14 +1730,16 @@ func _open_settings() -> void:
 func _toggle_music() -> void:
 	flags["music_enabled"] = not bool(flags.get("music_enabled", true))
 	audio_director.set_music_enabled(bool(flags["music_enabled"]))
-	_save()
+	if game_started:
+		_save()
 	_open_settings()
 
 
 func _toggle_sfx() -> void:
 	flags["sfx_enabled"] = not bool(flags.get("sfx_enabled", true))
 	audio_director.set_sfx_enabled(bool(flags["sfx_enabled"]))
-	_save()
+	if game_started:
+		_save()
 	_open_settings()
 
 
@@ -1673,6 +1873,8 @@ func _confirm_reset() -> void:
 func _reset_game() -> void:
 	var music_enabled := bool(flags.get("music_enabled", true))
 	var sfx_enabled := bool(flags.get("sfx_enabled", true))
+	game_started = true
+	has_saved_game = false
 	SaveManagerScript.clear_save()
 	current_place = "pharmacy"
 	direction_index = 0
@@ -1685,6 +1887,8 @@ func _reset_game() -> void:
 	shoe_input = ""
 	diary_page = 0
 	storybook_page = 0
+	if title_layer != null:
+		title_layer.visible = false
 	_close_modal()
 	_set_status("빛나는 편지함을 눌러 보세요.")
 	_render()
@@ -1778,6 +1982,8 @@ func _close_closeup() -> void:
 
 
 func _save() -> void:
+	if not game_started:
+		return
 	SaveManagerScript.save_game({
 		"current_place": current_place,
 		"direction_index": direction_index,
@@ -1925,8 +2131,8 @@ func _item_texture_path(item: String) -> String:
 		"torn_bear": "res://assets/items/childhood/torn-bear.png",
 		"needle": "res://assets/items/childhood/needle.png",
 		"thread": "res://assets/items/childhood/thread.png",
-		"sewing_kit": "res://assets/items/childhood/sewing-kit.png",
-		"repaired_bear": "res://assets/items/childhood/repaired-bear.png",
+		"sewing_kit": "res://assets/items/childhood/sewing-kit-icon.png",
+		"repaired_bear": "res://assets/items/childhood/repaired-bear-icon.png",
 		"block_red": "res://assets/items/childhood/block-red.png",
 		"block_yellow": "res://assets/items/childhood/block-yellow.png",
 		"block_blue": "res://assets/items/childhood/block-blue.png",
@@ -1938,13 +2144,13 @@ func _item_texture_path(item: String) -> String:
 		"storybook_page_4": "res://assets/items/childhood/storybook-page.png",
 		"storybook_page_5": "res://assets/items/childhood/storybook-page.png",
 		"storybook_page_pair": "res://assets/items/childhood/storybook-page.png",
-		"completed_storybook": "res://assets/items/childhood/storybook.png",
-		"mother_note": "res://assets/items/childhood/mother-note.png",
-		"empty_remote": "res://assets/items/childhood/remote-empty.png",
-		"remote_one_battery": "res://assets/items/childhood/remote-empty.png",
+		"completed_storybook": "res://assets/items/childhood/storybook-icon.png",
+		"mother_note": "res://assets/items/childhood/mother-note-icon.png",
+		"empty_remote": "res://assets/items/childhood/remote-empty-icon.png",
+		"remote_one_battery": "res://assets/items/childhood/remote-empty-icon.png",
 		"battery_1": "res://assets/items/childhood/battery.png",
 		"battery_2": "res://assets/items/childhood/battery.png",
-		"powered_remote": "res://assets/items/childhood/remote-powered.png",
+		"powered_remote": "res://assets/items/childhood/remote-powered-icon.png",
 		"courage": "res://assets/items/finale/courage-vial.png",
 		"door_key": "res://assets/items/school/school-key.png",
 		"clear_tape": "res://assets/items/school/clear-tape.png",
@@ -2011,7 +2217,7 @@ func _make_arrow_button(glyph: String, accessible_name: String) -> Button:
 
 func _play_sfx(key: String, volume_offset_db: float = 0.0) -> void:
 	if audio_director != null:
-		audio_director.play_sfx(key, volume_offset_db)
+		audio_director.play_sfx(key, volume_offset_db, key != "room_turn" and key != "ui_back")
 
 
 func _make_inventory_button(glyph: String, accessible_name: String) -> Button:
@@ -2077,6 +2283,8 @@ func _panel_style(color: Color, border: Color, width: int) -> StyleBoxFlat:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not game_started:
+		return
 	if event.is_action_pressed("close_popup") and (modal_layer.visible or closeup_layer.visible):
 		_close_modal()
 		get_viewport().set_input_as_handled()

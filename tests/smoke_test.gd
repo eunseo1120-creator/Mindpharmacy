@@ -25,6 +25,9 @@ func _run() -> void:
 	var game = packed.instantiate()
 	root.add_child(game)
 	await process_frame
+	_expect(game.title_layer != null and game.title_layer.visible, "게임은 방이 아니라 약방 시작 화면에서 열린다")
+	_expect(not game.game_started, "시작 화면에서는 방 진행과 자동 저장을 시작하지 않는다")
+	_expect(game.title_continue_button != null, "시작 화면에 저장 구간 이어하기 버튼이 있다")
 	_expect(game.audio_director != null, "오디오 디렉터를 생성한다")
 	_expect(ResourceLoader.exists("res://assets/audio/music/pharmacy-ambient.ogg"), "약방 배경음악을 불러온다")
 	_expect(ResourceLoader.exists("res://assets/audio/music/childhood-ambient.ogg"), "유년기 배경음악을 불러온다")
@@ -33,8 +36,34 @@ func _run() -> void:
 	_expect(game._item_texture_path("courage") == "res://assets/items/finale/courage-vial.png", "용기는 전체 시트가 아닌 단일 병 에셋을 사용한다")
 	_expect(game._item_texture_path("school_key") == "res://assets/items/school/school-key.png", "교실 열쇠는 단일 에셋을 사용한다")
 	_expect(game._item_texture_path("phone") == "res://assets/items/adult/phone.png", "휴대전화는 단일 에셋을 사용한다")
+	var inventory_items := [
+		"torn_bear", "needle", "thread", "sewing_kit", "repaired_bear",
+		"block_red", "block_yellow", "block_blue", "train_pair_yellow_blue", "repaired_train",
+		"alphabet_book", "picture_diary", "storybook_page_3", "storybook_page_4",
+		"storybook_page_5", "storybook_page_pair", "completed_storybook", "mother_note",
+		"empty_remote", "remote_one_battery", "battery_1", "battery_2", "powered_remote",
+		"courage", "door_key", "clear_tape", "torn_shoe", "repaired_shoe", "name_card",
+		"will", "school_key", "bus_ticket", "phone", "self_trust", "adult_key",
+		"courage_vial", "will_vial", "self_trust_vial", "emotion_vial_pair", "heart_key"
+	]
+	for item in inventory_items:
+		var icon_path: String = game._item_texture_path(item)
+		var icon := game._item_texture(item) as Texture2D
+		_expect(not icon_path.is_empty() and icon != null, "%s 인벤토리 아이콘을 불러온다" % item)
+		_expect("/backgrounds/" not in icon_path and "/source/" not in icon_path, "%s 아이콘은 장면이나 전체 시트를 재사용하지 않는다" % item)
+		if icon != null:
+			var icon_image := icon.get_image()
+			var corners_transparent := (
+				icon_image.get_pixel(0, 0).a < 0.1
+				and icon_image.get_pixel(icon_image.get_width() - 1, 0).a < 0.1
+				and icon_image.get_pixel(0, icon_image.get_height() - 1).a < 0.1
+				and icon_image.get_pixel(icon_image.get_width() - 1, icon_image.get_height() - 1).a < 0.1
+			)
+			_expect(corners_transparent, "%s 아이콘 네 모서리는 투명하게 누끼 처리되어 있다" % item)
+			_expect(icon_image.get_width() <= 640 and icon_image.get_height() <= 640, "%s 아이콘은 단일 오브젝트용 크기다" % item)
 
 	game._reset_game()
+	_expect(game.game_started and not game.title_layer.visible, "게임 시작 후 제목 화면을 닫고 약방을 표시한다")
 	game._open_letter()
 	game._enter_childhood()
 	_expect(game.current_place == "childhood", "편지에서 유아기 방으로 이동한다")
