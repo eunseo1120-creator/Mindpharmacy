@@ -52,12 +52,13 @@ func _run() -> void:
 
 	game._inspect_torn_bear()
 	game._select_item("sewing_kit")
-	game._inspect_torn_bear()
+	game._attempt_sew_bear()
 	_expect(game.inventory.has("repaired_bear"), "뜯어진 곰인형을 수선한다")
 
 	game._select_item("repaired_bear")
+	game._inspect_bed()
 	game._place_bear()
-	game._reveal_storybook()
+	game._collect_storybook_page_3()
 	_expect(game.inventory.has("storybook_page_3"), "곰인형을 침대 밑에 두고 동화책 3쪽을 얻는다")
 
 	game._collect_blocks()
@@ -68,6 +69,8 @@ func _run() -> void:
 	_expect(game.inventory.has("repaired_train"), "노랑·파랑·빨강 순서로 기차를 수리한다")
 	game._select_item("repaired_train")
 	game._place_train_on_rail()
+	_expect(not game.inventory.has("storybook_page_4"), "레일에서 드러난 페이지는 누르기 전까지 획득되지 않는다")
+	game._collect_storybook_page_4()
 	_expect(game.inventory.has("storybook_page_4"), "기차가 움직인 뒤 동화책 4쪽을 얻는다")
 
 	game._inspect_shoe_cabinet()
@@ -84,8 +87,12 @@ func _run() -> void:
 	game._collect_empty_remote()
 	game._inspect_sofa()
 	game._lift_sofa_cushion()
+	_expect(not game.inventory.has("battery_1"), "소파 건전지는 그림을 누르기 전까지 획득되지 않는다")
+	game._collect_sofa_battery()
 	game._inspect_clock()
 	game._turn_clock()
+	_expect(not game.inventory.has("battery_2"), "시계 건전지는 뒤집은 뒤 눌러야 획득된다")
+	game._collect_clock_battery()
 	game._combine_dragged_items("empty_remote", "battery_1")
 	_expect(game.inventory.has("remote_one_battery"), "리모컨에 첫 번째 건전지를 드래그해 넣는다")
 	game._combine_dragged_items("remote_one_battery", "battery_2")
@@ -95,6 +102,8 @@ func _run() -> void:
 	for step in range(14):
 		game._change_tv_volume(1)
 	_expect(game.flags.get("tv_volume_set", false), "TV 볼륨을 14에 맞춘다")
+	_expect(not game.inventory.has("storybook_page_5"), "볼륨 14의 페이지는 눌러야 획득된다")
+	game._collect_storybook_page_5()
 	_expect(game.inventory.has("storybook_page_5"), "볼륨 14에서 동화책 5쪽을 얻는다")
 	game._combine_dragged_items("storybook_page_3", "storybook_page_4")
 	_expect(game.inventory.has("storybook_page_pair"), "동화책 3쪽과 4쪽을 먼저 맞춘다")
