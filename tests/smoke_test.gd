@@ -58,6 +58,10 @@ func _run() -> void:
 	_expect(game.inventory.has("picture_diary"), "책장의 빈자리를 채워 그림일기를 얻는다")
 	game._open_diary(12)
 	_expect(game.flags.get("diary_page_12_seen", false), "그림일기 표지와 12쪽을 반복해서 펼쳐본다")
+	_expect(
+		game.closeup_image.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED,
+		"세로 그림일기는 원본 비율을 유지해 상세 화면 안에 전부 표시한다"
+	)
 
 	game._inspect_dresser()
 	game._open_dresser()

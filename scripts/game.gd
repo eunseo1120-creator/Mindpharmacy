@@ -1722,7 +1722,8 @@ func _show_closeup(heading: String, body: String, actions: Array, image_path: St
 		child.queue_free()
 	_clear_closeup_hotspots()
 	closeup_image.texture = load(image_path) as Texture2D
-	closeup_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if "/items/" in image_path else TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	var keep_full_image := "/items/" in image_path or "/diary/" in image_path
+	closeup_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if keep_full_image else TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	var caption := body.strip_edges()
 	closeup_caption_panel.visible = not caption.is_empty()
 	closeup_caption.text = "[center]" + caption + "[/center]" if not caption.is_empty() else ""
