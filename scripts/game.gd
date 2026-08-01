@@ -1053,13 +1053,13 @@ func _open_phone() -> void:
 	phone_input = ""
 	_show_closeup("구형 다이얼 전화기", "[font_size=28]— — — —[/font_size]\n다이얼의 숫자 구멍을 차례로 누른다.", [], "res://assets/items/childhood/rotary-phone.png")
 	var positions := {
-		"1": Vector2(0.51, 0.29), "2": Vector2(0.57, 0.32), "3": Vector2(0.61, 0.37),
-		"4": Vector2(0.62, 0.43), "5": Vector2(0.59, 0.49), "6": Vector2(0.54, 0.54),
-		"7": Vector2(0.47, 0.56), "8": Vector2(0.41, 0.54), "9": Vector2(0.36, 0.49),
-		"0": Vector2(0.34, 0.42)
+		"1": Vector2(0.474, 0.412), "2": Vector2(0.485, 0.450), "3": Vector2(0.479, 0.493),
+		"4": Vector2(0.463, 0.526), "5": Vector2(0.438, 0.544), "6": Vector2(0.411, 0.545),
+		"7": Vector2(0.387, 0.529), "8": Vector2(0.371, 0.498), "9": Vector2(0.362, 0.460),
+		"0": Vector2(0.371, 0.425)
 	}
 	for digit in positions:
-		_add_closeup_hotspot("다이얼 " + digit, Rect2(positions[digit] - Vector2(0.035, 0.045), Vector2(0.07, 0.09)), _dial_digit.bind(digit))
+		_add_closeup_hotspot("다이얼 " + digit, Rect2(positions[digit] - Vector2(0.022, 0.03), Vector2(0.044, 0.06)), _dial_digit.bind(digit))
 
 
 func _dial_digit(digit: String) -> void:
