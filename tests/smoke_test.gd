@@ -77,6 +77,18 @@ func _run() -> void:
 	_expect(game.inventory.has("storybook_page_3"), "곰인형을 침대 밑에 두고 동화책 3쪽을 얻는다")
 
 	game._collect_blocks()
+	var train_icon_paths := [
+		game._item_texture_path("block_red"),
+		game._item_texture_path("block_yellow"),
+		game._item_texture_path("block_blue")
+	]
+	var unique_train_icon_paths := {}
+	for train_icon_path in train_icon_paths:
+		unique_train_icon_paths[train_icon_path] = true
+	_expect(unique_train_icon_paths.size() == 3, "세 기차 블록은 각각 별도 인벤토리 에셋을 사용한다")
+	for train_icon_path in train_icon_paths:
+		var train_icon := load(train_icon_path) as Texture2D
+		_expect(train_icon != null and train_icon.get_size() == Vector2(640, 640), "기차 블록 인벤토리 에셋은 한 개체용 정사각형 이미지다")
 	game._inspect_train_photo()
 	game._combine_dragged_items("block_yellow", "block_blue")
 	_expect(game.inventory.has("train_pair_yellow_blue"), "노란 블록을 파란 블록에 드래그해 연결한다")

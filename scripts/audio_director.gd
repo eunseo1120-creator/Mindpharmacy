@@ -36,6 +36,10 @@ const SFX := {
 	"error": "res://assets/audio/sfx/error.ogg"
 }
 
+const SFX_COOLDOWN_MSEC := {
+	"room_turn": 160
+}
+
 var music_enabled := true
 var sfx_enabled := true
 var music_player: AudioStreamPlayer
@@ -43,6 +47,7 @@ var sfx_players: Array[AudioStreamPlayer] = []
 var current_music_key := ""
 var requested_music_key := ""
 var music_tween: Tween
+var last_sfx_time_msec: Dictionary = {}
 
 
 func _ready() -> void:
@@ -107,6 +112,11 @@ func _start_music(key: String) -> void:
 func play_sfx(key: String, volume_offset_db: float = 0.0, vary_pitch: bool = true) -> void:
 	if not sfx_enabled or not SFX.has(key):
 		return
+	var now_msec := Time.get_ticks_msec()
+	var cooldown_msec := int(SFX_COOLDOWN_MSEC.get(key, 0))
+	if cooldown_msec > 0 and now_msec - int(last_sfx_time_msec.get(key, -cooldown_msec)) < cooldown_msec:
+		return
+	last_sfx_time_msec[key] = now_msec
 	var player := _available_sfx_player()
 	player.stream = load(str(SFX[key])) as AudioStream
 	player.volume_db = -10.0 + volume_offset_db
