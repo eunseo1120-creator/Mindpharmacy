@@ -4,6 +4,7 @@ var game
 var output_dir := "/tmp/mindpharmacy-childhood-capture"
 var steps: Array = []
 var shot_index := 0
+var capture_size := Vector2i(1280, 720)
 
 
 func _initialize() -> void:
@@ -168,8 +169,8 @@ func _run() -> void:
 	await _shot("escaped-to-pharmacy", {"type": "hold", "hold": 2.2})
 
 	var manifest := {
-		"width": 1280,
-		"height": 720,
+		"width": capture_size.x,
+		"height": capture_size.y,
 		"fps": 24,
 		"steps": steps
 	}
@@ -276,13 +277,18 @@ func _click_action(point: Vector2, sfx: String, hold: float = 0.3) -> Dictionary
 func _shot(name: String, action: Dictionary) -> void:
 	await _settle()
 	var image := root.get_texture().get_image()
-	if image.get_width() != 1280 or image.get_height() != 720:
-		image.resize(1280, 720, Image.INTERPOLATE_LANCZOS)
+	capture_size = Vector2i(image.get_width(), image.get_height())
+	var action_scale := Vector2(float(capture_size.x) / 1280.0, float(capture_size.y) / 720.0)
+	var rendered_action: Dictionary = action.duplicate(true)
+	for point_key in ["from", "to"]:
+		if rendered_action.has(point_key):
+			var point: Array = rendered_action[point_key]
+			rendered_action[point_key] = [roundf(float(point[0]) * action_scale.x), roundf(float(point[1]) * action_scale.y)]
 	var filename := "%03d-%s.png" % [shot_index, name]
 	var result := image.save_png(output_dir.path_join(filename))
 	if result != OK:
 		push_error("스크린샷 저장 실패: " + filename)
-	steps.append({"image": filename, "action": action})
+	steps.append({"image": filename, "action": rendered_action})
 	shot_index += 1
 
 

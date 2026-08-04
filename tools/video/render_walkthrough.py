@@ -124,16 +124,70 @@ def paint_cursor(
     position: tuple[float, float],
     click_progress: float | None = None,
     trail: list[tuple[float, float]] | None = None,
+    cursor_scale: float = 1.0,
 ) -> Image.Image:
     frame = base.copy()
+    sprite_size = max(1, round(112 * cursor_scale))
+    sprite_offset = sprite_size // 2
+
+    def scaled_sprite(progress: float | None, intensity: float = 1.0) -> Image.Image:
+        sprite = cursor_sprite(progress, intensity)
+        if sprite_size != 112:
+            sprite = sprite.resize((sprite_size, sprite_size), Image.Resampling.LANCZOS)
+        return sprite
+
     if trail:
         for index, point in enumerate(trail[-5:]):
             alpha = (index + 1) / max(1, len(trail[-5:]))
-            sprite = cursor_sprite(None, 0.12 + 0.15 * alpha)
-            frame.alpha_composite(sprite, (round(point[0] - 56), round(point[1] - 56)))
-    sprite = cursor_sprite(click_progress)
-    frame.alpha_composite(sprite, (round(position[0] - 56), round(position[1] - 56)))
+            sprite = scaled_sprite(None, 0.12 + 0.15 * alpha)
+            frame.alpha_composite(sprite, (round(point[0] - sprite_offset), round(point[1] - sprite_offset)))
+    sprite = scaled_sprite(click_progress)
+    frame.alpha_composite(sprite, (round(position[0] - sprite_offset), round(position[1] - sprite_offset)))
     return frame.convert("RGB")
+
+
+def readable_hold(image_name: str, action: dict) -> float:
+    """Give text-heavy screens enough time to be read at a natural pace."""
+    explicit = float(action.get("hold", 0.30))
+    name = image_name.lower()
+
+    if name.endswith("escaped-to-pharmacy.png"):
+        return max(explicit, 3.5)
+    if "title-settings" in name:
+        return max(explicit, 4.0)
+    if "title" in name:
+        return max(explicit, 1.8)
+    if "first-letter" in name:
+        return max(explicit, 5.5)
+    if "diary-00" in name:
+        return max(explicit, 2.8)
+    if any(f"diary-{page:02d}" in name for page in [1, 2, 3, 4, 9, 10, 11, 12]):
+        return max(explicit, 5.2)
+    if any(f"diary-{page:02d}" in name for page in [5, 6, 7, 8]):
+        return max(explicit, 2.8)
+    if "mother-note" in name:
+        return max(explicit, 5.0)
+    if "train-order-clue" in name or "shoe-size-240" in name:
+        return max(explicit, 3.2)
+    if any(f"storybook-{page:02d}" in name for page in range(1, 6)):
+        return max(explicit, 6.0)
+    if "storybook-code-1366" in name:
+        return max(explicit, 4.0)
+    if "tv-volume-14" in name:
+        return max(explicit, 3.0)
+    if "tv-volume-" in name:
+        return max(explicit, 0.28)
+    if "phone-" in name or "shoe-code-" in name:
+        return max(explicit, 0.75)
+
+    detail_keywords = [
+        "book", "diary", "needle", "thread", "dresser", "wardrobe", "bear", "bed",
+        "train", "page", "shoe", "cabinet", "remote", "sofa", "battery", "clock",
+        "door", "letter", "phone",
+    ]
+    if any(keyword in name for keyword in detail_keywords):
+        return max(explicit, 1.45)
+    return max(explicit, 0.85)
 
 
 def decode_audio(ffmpeg: Path, source: Path, duration: float | None = None, loop: bool = False) -> np.ndarray:
@@ -239,9 +293,11 @@ def main() -> None:
         "-c:v",
         "libx264",
         "-preset",
-        "medium",
+        "slow",
         "-crf",
-        "20",
+        "12",
+        "-tune",
+        "animation",
         "-pix_fmt",
         "yuv420p",
         "-movflags",
@@ -253,13 +309,14 @@ def main() -> None:
         raise RuntimeError("ffmpeg 입력 파이프를 열지 못했습니다.")
 
     frame_count = 0
-    cursor = (640.0, 680.0)
+    cursor_scale = width / 1280.0
+    cursor = (640.0 * cursor_scale, 680.0 * cursor_scale)
     events: list[dict] = []
     childhood_start = 0.0
 
     def emit(base: Image.Image, position: tuple[float, float], click: float | None = None, trail=None) -> None:
         nonlocal frame_count
-        encoder.stdin.write(paint_cursor(base, position, click, trail).tobytes())
+        encoder.stdin.write(paint_cursor(base, position, click, trail, cursor_scale).tobytes())
         frame_count += 1
 
     def emit_for(base: Image.Image, seconds: float, position: tuple[float, float]) -> None:
@@ -272,38 +329,38 @@ def main() -> None:
         action_type = action.get("type", "hold")
 
         if action_type == "hold":
-            emit_for(base, float(action.get("hold", 1.0)), cursor)
+            emit_for(base, readable_hold(step["image"], action), cursor)
             continue
 
         target = tuple(float(value) for value in action["to"])
         if action_type == "drag":
             start = tuple(float(value) for value in action["from"])
-            travel_frames = max(1, round(0.24 * fps))
+            travel_frames = max(1, round(0.42 * fps))
             for frame in range(travel_frames):
                 cursor = interpolate(cursor, start, (frame + 1) / travel_frames)
                 emit(base, cursor)
-            emit_for(base, 0.12, start)
-            drag_frames = max(1, round(0.58 * fps))
+            emit_for(base, 0.24, start)
+            drag_frames = max(1, round(0.95 * fps))
             trail: list[tuple[float, float]] = []
             for frame in range(drag_frames):
                 cursor = interpolate(start, target, (frame + 1) / drag_frames)
                 trail.append(cursor)
                 emit(base, cursor, trail=trail)
         else:
-            travel_frames = max(1, round(0.28 * fps))
+            travel_frames = max(1, round(0.48 * fps))
             start = cursor
             for frame in range(travel_frames):
                 cursor = interpolate(start, target, (frame + 1) / travel_frames)
                 emit(base, cursor)
 
         cursor = target
-        emit_for(base, float(action.get("hold", 0.30)), cursor)
+        emit_for(base, readable_hold(step["image"], action), cursor)
         event_time = frame_count / fps
         if action.get("sfx"):
             events.append({"time": event_time, "sfx": action["sfx"]})
         if step_index == 5:
             childhood_start = event_time + 0.12
-        click_frames = max(1, round(0.16 * fps))
+        click_frames = max(1, round(0.24 * fps))
         for frame in range(click_frames):
             emit(base, cursor, frame / max(1, click_frames - 1))
 
